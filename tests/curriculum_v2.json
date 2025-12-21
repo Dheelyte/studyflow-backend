@@ -1,0 +1,222 @@
+{
+  "curriculum_title": "4-Week Beginner Data Analysis Bootcamp",
+  "overview": "This comprehensive 4-week curriculum is designed to take a learner with zero prior experience to a functional understanding of data analysis. The course progresses from conceptual foundations and spreadsheet mastery to data visualization and an introduction to SQL databases. By the end of this curriculum, the learner will be able to take raw data, clean it, analyze it, and present actionable insights.",
+  "learning_objectives": [
+    "Define the data analysis process (Ask, Prepare, Process, Analyze, Share, Act).",
+    "Navigate and utilize spreadsheet software (Excel/Google Sheets) for data entry and manipulation.",
+    "Perform data cleaning and ensure data integrity using sorting, filtering, and functions.",
+    "Create meaningful data visualizations and dashboards to communicate insights.",
+    "Understand the basics of relational databases and write introductory SQL queries."
+  ],
+  "modules": [
+    {
+      "module_id": 1,
+      "module_title": "Foundations of Data & Spreadsheet Basics",
+      "lessons": [
+        {
+          "lesson_title": "The Data Analysis Ecosystem",
+          "topics_covered": [
+            "What is Data Analysis?",
+            "Types of Data (Quantitative vs. Qualitative)",
+            "The Data Life Cycle",
+            "Roles in Data (Analyst vs. Scientist vs. Engineer)"
+          ],
+          "estimated_time": "2 Hours",
+          "resources": [
+            {
+              "type": "Video",
+              "label": "What is Data Analytics?",
+              "description": "An overview by Google Career Certificates explaining the role of a data analyst.",
+              "resource_url": "https://www.youtube.com/watch?v=CaqJtJfdhAw"
+            },
+            {
+              "type": "Article",
+              "label": "The Data Analysis Process",
+              "description": "A comprehensive guide to the 5 stages of data analysis.",
+              "resource_url": "https://www.comptia.org/blog/what-is-data-analysis-process"
+            }
+          ]
+        },
+        {
+          "lesson_title": "Spreadsheet Fundamentals",
+          "topics_covered": [
+            "Interface navigation (Rows, Columns, Cells)",
+            "Data Entry and Formatting",
+            "Basic Mathematical Operators",
+            "Freezing Panes and Sorting"
+          ],
+          "estimated_time": "3 Hours",
+          "resources": [
+            {
+              "type": "Interactive",
+              "label": "Excel 2019 Basics Tutorial",
+              "description": "A self-paced, high-quality free tutorial covering the absolute basics of Excel.",
+              "resource_url": "https://edu.gcfglobal.org/en/excel2019/getting-started-with-excel/1/"
+            },
+            {
+              "type": "Video",
+              "label": "Google Sheets for Beginners",
+              "description": "A walkthrough of Google Sheets for those without access to Excel.",
+              "resource_url": "https://www.youtube.com/watch?v=FIkZ1sPmHKw"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": 2,
+      "module_title": "Data Cleaning and Manipulation",
+      "lessons": [
+        {
+          "lesson_title": "Ensuring Data Integrity",
+          "topics_covered": [
+            "Identifying 'Dirty' Data",
+            "Removing Duplicates",
+            "Handling Missing Values (Nulls)",
+            "Text to Columns"
+          ],
+          "estimated_time": "3 Hours",
+          "resources": [
+            {
+              "type": "Article",
+              "label": "Top Ten Ways to Clean Your Data",
+              "description": "Official Microsoft support guide on best practices for cleaning Excel data.",
+              "resource_url": "https://support.microsoft.com/en-us/office/top-ten-ways-to-clean-your-data-2844b620-677c-47a7-ac3e-c2e157d1db19"
+            },
+            {
+              "type": "Video",
+              "label": "Data Cleaning in Excel",
+              "description": "Practical demonstration of cleaning messy datasets.",
+              "resource_url": "https://www.youtube.com/watch?v=l_5_qG4xO08"
+            }
+          ]
+        },
+        {
+          "lesson_title": "Essential Analysis Formulas",
+          "topics_covered": [
+            "Conditional Logic (IF, IFS)",
+            "String Manipulation (LEFT, RIGHT, CONCAT)",
+            "Lookup Functions (VLOOKUP, XLOOKUP)"
+          ],
+          "estimated_time": "4 Hours",
+          "resources": [
+            {
+              "type": "Article",
+              "label": "VLOOKUP Explained",
+              "description": "A clear, example-based guide to one of the most important analyst functions.",
+              "resource_url": "https://exceljet.net/functions/vlookup-function"
+            },
+            {
+              "type": "Interactive",
+              "label": "Logical Functions in Excel",
+              "description": "Tutorials on using IF functions to categorize data.",
+              "resource_url": "https://edu.gcfglobal.org/en/excelformulas/if-function/1/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": 3,
+      "module_title": "Visualization and Storytelling",
+      "lessons": [
+        {
+          "lesson_title": "Summarizing Data with Pivot Tables",
+          "topics_covered": [
+            "Creating Pivot Tables",
+            "Grouping Data",
+            "Calculated Fields",
+            "Slicers and Filters"
+          ],
+          "estimated_time": "3 Hours",
+          "resources": [
+            {
+              "type": "Article",
+              "label": "Excel Pivot Tables Guide",
+              "description": "Step-by-step instructions on creating and managing Pivot Tables.",
+              "resource_url": "https://www.excel-easy.com/data-analysis/pivot-tables.html"
+            }
+          ]
+        },
+        {
+          "lesson_title": "Visualizing Data",
+          "topics_covered": [
+            "Choosing the Right Chart Type (Bar vs. Line vs. Pie)",
+            "Creating Charts in Spreadsheets",
+            "Formatting for Readability",
+            "Building a Basic Dashboard"
+          ],
+          "estimated_time": "3 Hours",
+          "resources": [
+            {
+              "type": "Article",
+              "label": "Data Visualization Guide",
+              "description": "A guide on selecting the correct chart type for your data.",
+              "resource_url": "https://blog.hubspot.com/marketing/types-of-graphs-for-data-visualization"
+            },
+            {
+              "type": "Video",
+              "label": "How to Build an Excel Dashboard",
+              "description": "A tutorial on combining charts and slicers into a cohesive view.",
+              "resource_url": "https://www.youtube.com/watch?v=K74_FNnlIF8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "module_id": 4,
+      "module_title": "Beyond Spreadsheets: Introduction to SQL",
+      "lessons": [
+        {
+          "lesson_title": "Databases vs. Spreadsheets",
+          "topics_covered": [
+            "What is a Relational Database?",
+            "Introduction to SQL (Structured Query Language)",
+            "Tables, Keys, and Relationships",
+            "When to move from Excel to SQL"
+          ],
+          "estimated_time": "2 Hours",
+          "resources": [
+            {
+              "type": "Video",
+              "label": "SQL Basics for Beginners",
+              "description": "Simplilearn's introduction to what SQL is and why it matters.",
+              "resource_url": "https://www.youtube.com/watch?v=9PzoxTgf20g"
+            },
+            {
+              "type": "Interactive",
+              "label": "Intro to SQL: Querying and Managing Data",
+              "description": "Khan Academy's interactive environment to learn SQL concepts.",
+              "resource_url": "https://www.khanacademy.org/computing/computer-programming/sql"
+            }
+          ]
+        },
+        {
+          "lesson_title": "Writing Basic Queries",
+          "topics_covered": [
+            "SELECT and FROM statements",
+            "Filtering with WHERE",
+            "Sorting with ORDER BY",
+            "Aggregating data (COUNT, SUM, AVG)"
+          ],
+          "estimated_time": "3 Hours",
+          "resources": [
+            {
+              "type": "Interactive",
+              "label": "W3Schools SQL Tutorial",
+              "description": "An interactive playground to write and test SQL queries instantly.",
+              "resource_url": "https://www.w3schools.com/sql/"
+            },
+            {
+              "type": "Article",
+              "label": "Mode Analytics: Basic SQL",
+              "description": "A professional-grade tutorial on writing clean SQL queries.",
+              "resource_url": "https://mode.com/sql-tutorial/introduction-to-sql/"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

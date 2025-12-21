@@ -24,8 +24,10 @@ router = APIRouter(
 
 @router.post("/register", response_model=MsgResponse, status_code=201)
 async def register(
+    response: Response,
     user_data: UserCreate,
     user_service: UserServiceDep,
+    token_service: AuthTokenServiceDep,
 ):
     """
     Register a new user account.
@@ -51,7 +53,12 @@ async def register(
     - `HTTPException (400)`: If a user with the given email already exists.
     - Other internal exceptions if user creation or email sending fails.
     """
-    await user_service.register_user(user_data)
+    user = await user_service.register_user(user_data)
+
+    access_token = token_service.create_access_token(data={"sub": user.email})
+    refresh_token = token_service.create_refresh_token(data={"sub": user.email})
+    
+    token_service.set_auth_cookies(response, access_token, refresh_token)
 
     return MsgResponse(message="Registration successful")
 

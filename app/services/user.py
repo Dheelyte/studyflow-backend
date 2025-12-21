@@ -29,7 +29,6 @@ class UserService:
             first_name=user_data.first_name,
             last_name=user_data.last_name,
             is_active=True,
-            is_verified=False,
         )
         await self.repo.add(user)
         return user

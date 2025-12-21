@@ -13,16 +13,13 @@ class User(Base):
     first_name = mapped_column(String(255), nullable=False)
     last_name = mapped_column(String(255), nullable=False)
     is_active = mapped_column(Boolean, default=True)
-    is_verified = mapped_column(Boolean, default=False)
     created_at = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-    updated_at = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
+    
+    posts = relationship("Post", back_populates="user")
+    comments = relationship("Comment", back_populates="user")
+    communities = relationship("Community", secondary="community_members", back_populates="members")
 
     def __repr__(self):
         return f"<User {self.email}>"
