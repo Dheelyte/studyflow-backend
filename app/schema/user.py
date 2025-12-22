@@ -33,9 +33,6 @@ class UserRead(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
 
 
 class PasswordChangeData(BaseModel):

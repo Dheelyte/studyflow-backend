@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from .config import settings
 from .middlewares.security import AllowedHostMiddlware
 from .middlewares.utils import TimingMiddleware
-from .routers import auth, users, playlist
+from .routers import auth, users, playlist, comments, communities, posts
 from .schema.base import CustomValidationErrorSchema
 from .exceptions.base import register_app_exceptions
 
@@ -45,9 +45,11 @@ API_V1_STR = settings.API_V1_STR
 app.include_router(auth.router, prefix=API_V1_STR)
 app.include_router(users.router, prefix=API_V1_STR)
 app.include_router(playlist.router, prefix=API_V1_STR)
+app.include_router(communities.router, prefix=API_V1_STR)
+app.include_router(posts.router, prefix=API_V1_STR)
+app.include_router(comments.router, prefix=API_V1_STR)
 
 register_app_exceptions(app)
-
 
 @app.get("/")
 async def health_status():

@@ -9,7 +9,6 @@ from .base import Base
 class Post(Base):
     __tablename__ = "posts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    title: Mapped[str] = mapped_column(String, index=True)
     content: Mapped[str] = mapped_column(Text)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     community_id: Mapped[int] = mapped_column(ForeignKey("communities.id"))

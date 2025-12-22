@@ -12,6 +12,9 @@ class BadRequestError(Exception):
 class UnauthorizedError(Exception):
     pass
 
+class NotFoundError(Exception):
+    pass
+
 
 async def bad_request_handler(request: Request, exc: BadRequestError):
     return JSONResponse(
@@ -22,6 +25,12 @@ async def bad_request_handler(request: Request, exc: BadRequestError):
 async def unauthorized_request_handler(request: Request, exc: UnauthorizedError):
     return JSONResponse(
         status_code=status.HTTP_401_UNAUTHORIZED,
+        content={"detail": str(exc)},
+    )
+
+async def notfound_request_handler(request: Request, exc: NotFoundError):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
         content={"detail": str(exc)},
     )
 

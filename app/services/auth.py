@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.session import get_session
 from ..repositories.user import UserRepository
-from ..exceptions.base import BadRequestError, UnauthorizedError
+from ..exceptions.base import BadRequestError, NotFoundError, UnauthorizedError
 from ..repositories.auth import PasswordResetRepository
 from ..config import settings
 from ..models.user import PasswordResetToken, User
@@ -95,6 +95,30 @@ class AuthTokenService:
             return email
         except jwt.PyJWTError:
             return None
+        
+    def verify_access_token(self, token: str) -> str | None:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM],
+            )
+            email: str = payload.get("sub")
+            token_type: str = payload.get("token_type")
+            if not email or token_type != "access":
+                return None
+            return email
+        except jwt.PyJWTError:
+            return None
+    
+    async def get_user_from_token(self, token: str) -> User:
+        email = self.verify_access_token(token)
+        if not email:
+             raise UnauthorizedError("Invalid token")
+        user = await self.user_repo.get_by_email(email)
+        if not user:
+             raise NotFoundError("User not found")
+        return user
 
     def set_auth_cookies(
         self, response: Response, access_token: str, refresh_token: str = None
