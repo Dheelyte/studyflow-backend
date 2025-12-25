@@ -5,7 +5,8 @@ from .user import User
 from .community import Community
 from .post import Post
 from .comment import Comment
+from .like import Like
 
 
 # This ensures all models are loaded before create_all() is called
-__all__ = ["User", "Community", "Post", "Comment"]
+__all__ = ["User", "Community", "Post", "Comment", "Like"]

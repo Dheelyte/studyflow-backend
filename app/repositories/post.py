@@ -1,5 +1,8 @@
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
+
+from app.models.like import Like
 
 from ..models.post import Post
 from ..models.comment import Comment
@@ -97,3 +100,49 @@ class PostRepository:
     async def delete(self, post: Post):
         await self.session.delete(post)
         await self.session.flush()
+
+    async def check_like_exists(self, post_id: int, user_id: UUID):
+        query = select(Like).where(Like.user_id == user_id, Like.post_id == post_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+    
+    async def like_post(self, like: Like) -> Like:
+        self.session.add(like)
+        await self.session.flush()
+        return like
+
+    async def unlike_post(self, post_id: int, user_id: UUID):
+        query = delete(Like).where(Like.user_id == user_id, Like.post_id == post_id)
+        await self.session.execute(query)
+    
+    async def fill_like_info(self, posts: list[Post], user_id: int = None):
+        """
+        Efficiently populates likes_count and liked_by_user for a list of posts.
+        Directly attaching attributes to the SQLAlchemy models for Pydantic serialization.
+        """
+        if not posts:
+            return
+        post_ids = [p.id for p in posts]
+        
+        # 1. Get like counts
+        stmt_counts = (
+            select(Like.post_id, func.count(Like.id))
+            .where(Like.post_id.in_(post_ids))
+            .group_by(Like.post_id)
+        )
+        counts_res = await self.session.execute(stmt_counts)
+        counts_map = dict(counts_res.all())
+        
+        # 2. Get user liked status if user_id is provided
+        liked_map = {}
+        if user_id:
+            stmt_liked = (
+                select(Like.post_id)
+                .where(Like.post_id.in_(post_ids), Like.user_id == user_id)
+            )
+            liked_res = await self.session.execute(stmt_liked)
+            liked_map = {row[0]: True for row in liked_res.all()}
+        # 3. Populate
+        for p in posts:
+            p.likes_count = counts_map.get(p.id, 0)
+            p.liked_by_user = liked_map.get(p.id, False)

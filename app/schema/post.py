@@ -22,6 +22,8 @@ class PostResponse(PostBase):
     user_id: UUID
     community_id: int
     comments_count: int
+    likes_count: int = 0
+    liked_by_user: bool = False
     created_at: datetime
 
     class Config:

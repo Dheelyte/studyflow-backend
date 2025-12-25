@@ -19,6 +19,7 @@ class User(Base):
     
     posts = relationship("Post", back_populates="user")
     comments = relationship("Comment", back_populates="user")
+    likes = relationship("Like", back_populates="user")
     communities = relationship("Community", secondary="community_members", back_populates="members")
 
     def __repr__(self):

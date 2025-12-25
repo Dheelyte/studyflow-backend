@@ -73,3 +73,23 @@ async def delete_post(
 ):
     await post_service.delete_post(post_id)
     return None
+
+
+@router.post("/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def like_post(
+    post_id: int, 
+    auth_user: AuthUserDep,
+    post_service: PostServiceDep
+):
+    await post_service.like_post(post_id, auth_user.id)
+    return None
+
+
+@router.delete("/{post_id}/like", status_code=status.HTTP_204_NO_CONTENT)
+async def unlike_post(
+    post_id: int, 
+    auth_user: AuthUserDep,
+    post_service: PostServiceDep
+):
+    await post_service.unlike_post(post_id, auth_user.id)
+    return None
