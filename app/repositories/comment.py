@@ -24,7 +24,7 @@ class CommentRepository:
             .offset(skip)
             .limit(limit)
         )
-        return list(result.scalars().all())
+        return result.scalars().all()
     
     async def update(self, comment: Comment) -> Comment:
         self.session.add(comment)

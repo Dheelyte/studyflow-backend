@@ -1,41 +1,25 @@
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from enum import Enum
+from typing import Optional, Dict, Any
 
-from pydantic import BaseModel
+from ..models.playlist import PlaylistLevel
 
-from ..schema.resource import ResourceBase
-
-
-class CurriculumRequest(BaseModel):
-    topic: str
-    experience_level: str
-    learn_duration: str
-
-class CurriculumResponse(BaseModel):
-    title: str
-    summary: str
-    resources: ResourceBase
-
-
-class PlaylistStatus(str, Enum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-class PlaylistBase(BaseModel):
-    topic: str
-    status: PlaylistStatus = PlaylistStatus.PENDING
 
 class PlaylistCreate(BaseModel):
-    user_id: int
+    title: str
+    level: PlaylistLevel
+    timeline: str
+    content: Optional[Dict[str, Any]] = None
 
-class PlaylistUpdate(BaseModel):
-    status: PlaylistStatus
 
-class PlaylistResponse(PlaylistBase):
+class PlaylistResponse(BaseModel):
     id: int
-    user_id: int
+    title: str
+    level: PlaylistLevel
+    timeline: str
+    user_id: UUID
     created_at: datetime
-    
-    class Config:
-        from_attributes = True
+    content: Optional[Dict[str, Any]] = None
+
+    model_config = ConfigDict(from_attributes=True)

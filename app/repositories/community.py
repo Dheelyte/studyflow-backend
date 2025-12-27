@@ -55,7 +55,7 @@ class CommunityRepository:
     
     async def get_all(self, skip: int, limit: int) -> list[Community]:
         result = await self.session.execute(select(Community).offset(skip).limit(limit))
-        return list(result.scalars().all())
+        return result.scalars().all()
     
     async def update(self, community: Community) -> Community:
         self.session.add(community)
@@ -135,4 +135,4 @@ class CommunityRepository:
         for comm in communities:
             # We don't set member_count here. Pydantic schema CommunityResponse won't have it either.
             setattr(comm, "is_member", False)
-        return list(communities)
+        return communities

@@ -1,20 +1,25 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, DateTime, ForeignKey, Enum
 from datetime import datetime, timezone
 import enum
+
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Enum, Integer, String, DateTime, ForeignKey, JSON
+
 from .base import Base
 
 
-class PlaylistStatus(str, enum.Enum):
-    PENDING = "pending"
-    COMPLETED = "completed"
-    FAILED = "failed"
+class PlaylistLevel(str, enum.Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
 
 
 class Playlist(Base):
-    __tablename__ = "playlists"
+    __tablename__ = 'playlists'
+    
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    topic: Mapped[str] = mapped_column(String)
-    status: Mapped[PlaylistStatus] = mapped_column(Enum(PlaylistStatus), default=PlaylistStatus.PENDING)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    title: Mapped[str] = mapped_column(String)
+    level: Mapped[PlaylistLevel] = mapped_column(Enum(PlaylistLevel), default=PlaylistLevel.BEGINNER)
+    timeline: Mapped[str] = mapped_column(String)
+    content: Mapped[dict] = mapped_column(JSON, nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

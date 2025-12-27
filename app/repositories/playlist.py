@@ -1,0 +1,144 @@
+from uuid import UUID
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.module import Module
+from app.models.playlist import Playlist
+from app.models.progress import UserPlaylist, UserResourceProgress
+from app.models.resource import Resource
+from app.models.user import User
+
+
+class PlaylistRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+    
+    async def add(self, playlist_model):
+        self.session.add(playlist_model)
+        await self.session.flush()
+        return playlist_model
+    
+    async def get_playlist_by_id(self, playlist_id: int):
+        stmt = (
+            select(Playlist)
+            .where(Playlist.id == playlist_id)
+        )
+        result = await self.session.execute(stmt)
+        playlist = result.scalar_one_or_none()
+        return playlist
+    
+    async def get_user_playlists(self, user_id: UUID):
+        stmt = (
+            select(UserPlaylist)
+            .options(
+                selectinload(UserPlaylist.playlist)
+                .load_only(Playlist.id, Playlist.title)
+            )
+            .where(UserPlaylist.user_id == user_id)
+        )
+        result = await self.session.execute(stmt)
+        playlists = result.scalars().all()
+        return playlists
+    
+    async def get_all_playlist_resources(self, playlist_id: int):
+        stmt = (
+            select(func.count(Resource.id))
+            .join(Module)
+            .where(Module.playlist_id == playlist_id)
+        )
+        result = await self.session.execute(stmt)
+        total_resources = result.scalar_one()
+        return total_resources
+    
+    async def get_completed_resource_count(self, playlist_id: int, user_id: UUID):
+        stmt = (
+            select(func.count(UserResourceProgress.id))
+            .join(Resource)
+            .join(Module)
+            .where(
+                Module.playlist_id == playlist_id,
+                UserResourceProgress.user_id == user_id,
+                UserResourceProgress.is_completed == True
+            )
+        )
+        result = await self.session.execute(stmt)
+        completed_resources = result.scalar_one()
+        return completed_resources
+    
+    async def get_user_playlist(self, playlist_id: int, user_id: int):
+        result = await self.session.execute(
+            select(UserPlaylist).where(
+                UserPlaylist.user_id == user_id,
+                UserPlaylist.playlist_id == playlist_id
+            )
+        )
+        user_playlist = result.scalar_one_or_none()
+        return user_playlist
+
+
+class ModuleRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def add(self, module: Module):
+        self.session.add(module)
+        await self.session.flush()
+        return module
+    
+    async def get_module_by_id(self, module_id: int):
+        result = await self.session.execute(
+            select(Module).where(Module.id == module_id)
+        )
+        module = result.scalar_one_or_none()
+        return module
+        
+
+class ResourceRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def add(self, resource_model):
+        self.session.add(resource_model)
+        await self.session.flush()
+        return resource_model
+
+    async def get_resource_by_id(self, resource_id: int):
+        result = await self.session.execute(select(Resource).where(Resource.id == resource_id))
+        resource = result.scalar_one_or_none()
+        return resource
+    
+    async def get_resource_progress(self, user_id, resource_id):
+        result = await self.session.execute(
+            select(UserResourceProgress).where(
+                UserResourceProgress.user_id == user_id,
+                UserResourceProgress.resource_id == resource_id
+            )
+        )
+        progress = result.scalar_one_or_none()
+        return progress
+    
+    
+class LessonRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def add(self, lesson_model):
+        self.session.add(lesson_model)
+        await self.session.flush()
+        return lesson_model
+
+    async def get_lesson_by_id(self, lesson_id: int):
+        result = await self.session.execute(select(Lesson).where(Lesson.id == lesson_id))
+        lesson = result.scalar_one_or_none()
+        return lesson
+    
+    async def get_resource_progress(self, user_id, lesson_id):
+        result = await self.session.execute(
+            select(UserResourceProgress).where(
+                UserResourceProgress.user_id == user_id,
+                UserResourceProgress.resource_id == lesson_id
+            )
+        )
+        progress = result.scalar_one_or_none()
+        return progress
