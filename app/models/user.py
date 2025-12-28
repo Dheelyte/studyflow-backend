@@ -1,4 +1,4 @@
-from sqlalchemy import UUID, Boolean, DateTime, ForeignKey, String
+from sqlalchemy import UUID, Boolean, DateTime, ForeignKey, String, Integer
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -16,6 +16,10 @@ class User(Base):
     created_at = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    current_streak = mapped_column(Integer, default=0, nullable=False)
+    longest_streak = mapped_column(Integer, default=0, nullable=False)
+    last_active_date = mapped_column(DateTime(timezone=True), nullable=True)
+
     
     posts = relationship("Post", back_populates="user")
     comments = relationship("Comment", back_populates="user")

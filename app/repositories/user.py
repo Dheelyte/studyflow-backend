@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +13,10 @@ class UserRepository:
         stmt = select(User).where(func.lower(User.email) == email.lower())
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_by_id(self, user_id: UUID) -> User | None:
+        return await self.session.get(User, user_id)
+
     
     async def add(self, user: User):
         self.session.add(user)

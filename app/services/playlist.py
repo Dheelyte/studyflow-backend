@@ -11,6 +11,7 @@ from app.models.playlist import Playlist
 from app.models.module import Module
 from app.models.resource import Resource
 from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository
+from app.repositories.user import UserRepository
 from app.schema.playlist import PlaylistCreate
 from app.models.progress import UserPlaylistStatus, UserResourceProgress, UserModuleProgress, UserPlaylist
 
@@ -21,12 +22,14 @@ class PlaylistService:
         playlist_repo: PlaylistRepository,
         module_repo: ModuleRepository,
         lesson_repo: LessonRepository,
-        resource_repo: ResourceRepository
+        resource_repo: ResourceRepository,
+        user_repo: UserRepository
     ):
         self.playlist_repo = playlist_repo
         self.module_repo = module_repo
         self.lesson_repo = lesson_repo
         self.resource_repo = resource_repo
+        self.user_repo = user_repo
 
     async def get_playlist(self, playlist_id: int):
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
@@ -138,7 +141,36 @@ class PlaylistService:
         elif not progress.is_completed:
             progress.is_completed = True
             progress.completed_at = datetime.now(timezone.utc)
+        
+        # Streak Logic
+        user = await self.user_repo.get_by_id(user_id)
+        if user:
+            now = datetime.now(timezone.utc)
+            today_date = now.date()
             
+            last_active = user.last_active_date
+            if last_active:
+                last_active_date = last_active.date()
+                delta_days = (today_date - last_active_date).days
+                
+                if delta_days == 1:
+                    # Consecutive day
+                    user.current_streak += 1
+                elif delta_days > 1:
+                    # Broken streak
+                    user.current_streak = 1
+                # If delta_days == 0 (same day), do nothing
+            else:
+                # First activity
+                user.current_streak = 1
+            
+            # Update longest streak
+            if user.current_streak > user.longest_streak:
+                user.longest_streak = user.current_streak
+                
+            user.last_active_date = now
+            # await self.user_repo.add(user) # Save changes
+
         return progress
     
     # async def _check_playlist_progress(self, user_id: int, module_id: int):
@@ -188,12 +220,16 @@ def get_lesson_repo(session: AsyncSession = Depends(get_session)):
 def get_resource_repo(session: AsyncSession = Depends(get_session)):
     return ResourceRepository(session)
 
+def get_user_repo(session: AsyncSession = Depends(get_session)):
+    return UserRepository(session)
+
 def get_playlist_service(
         playlist_repo: PlaylistRepository = Depends(get_playlist_repo),
         module_repo: ModuleRepository = Depends(get_module_repo),
         resource_repo: ResourceRepository = Depends(get_resource_repo),
-        lesson_repo: LessonRepository = Depends(get_lesson_repo)
+        lesson_repo: LessonRepository = Depends(get_lesson_repo),
+        user_repo: UserRepository = Depends(get_user_repo)
     ):
-    return PlaylistService(playlist_repo, module_repo, lesson_repo, resource_repo)
+    return PlaylistService(playlist_repo, module_repo, lesson_repo, resource_repo, user_repo)
 
 PlaylistServiceDep = Annotated[PlaylistService, Depends(get_playlist_service)]
