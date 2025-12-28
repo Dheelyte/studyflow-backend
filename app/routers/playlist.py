@@ -54,16 +54,6 @@ async def get_user_playlists(
     return playlists
 
 
-@router.post('/resource/{resource_id}', response_model=list[UserPlaylistResponse])
-async def update_resource_status(
-    resource_id: int,
-    auth_user: AuthUserDep,
-    playlist_service: PlaylistServiceDep
-):
-    await playlist_service.update_resource_status(resource_id, auth_user.id)
-    return {"message": "resource status updated"}
-
-
 @router.post('/resource/{resource_id}/complete', response_model=UserResourceProgressResponse)
 async def mark_resource_completed(
     resource_id: int,

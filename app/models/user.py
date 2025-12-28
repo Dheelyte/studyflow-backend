@@ -19,6 +19,7 @@ class User(Base):
     current_streak = mapped_column(Integer, default=0, nullable=False)
     longest_streak = mapped_column(Integer, default=0, nullable=False)
     last_active_date = mapped_column(DateTime(timezone=True), nullable=True)
+    total_xp = mapped_column(Integer, default=0, nullable=False)
 
     
     posts = relationship("Post", back_populates="user")

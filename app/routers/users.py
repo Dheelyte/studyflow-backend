@@ -6,6 +6,11 @@ from ..schema.base import DataResponse, MsgResponse
 from ..schema.user import PasswordChangeData, UserRead
 from ..services.auth import Hasher
 from ..services.user import UserServiceDep
+from ..services.activity import ActivityServiceDep
+from ..schema.activity import UserActivity, UserActivityResponse
+from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+from ..db.session import get_session
 
 router = APIRouter(prefix="/users", tags=["Users"], dependencies=[Depends(db_session)])
 
@@ -63,3 +68,15 @@ async def change_password(
     )
 
     return MsgResponse(message="Password updated successfully")
+
+
+@router.get("/my-activity", response_model=UserActivityResponse)
+async def get_user_activity(
+    auth_user: AuthUserDep,
+    activity_service: ActivityServiceDep,
+    days: int = None
+):
+    activities = await activity_service.get_user_activities(auth_user.id, days)
+    return UserActivityResponse(activities=[
+        UserActivity(date=a.date, activity_count=a.activity_count) for a in activities
+    ])

@@ -1,8 +1,9 @@
 from datetime import datetime
+from math import floor, sqrt
 from typing import Any, Dict
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, computed_field
 
 
 class UserBase(BaseModel):
@@ -28,6 +29,16 @@ class UserCreate(UserBase):
         return v
 
 
+from enum import Enum
+
+class LevelTitle(str, Enum):
+    NOVICE = "Novice Explorer"
+    LEARNER = "Dedicated Learner"
+    SEEKER = "Knowledge Seeker"
+    SCHOLAR = "Scholar"
+    MASTER = "Master"
+    GRANDMASTER = "Grandmaster"
+
 class UserRead(BaseModel):
     id: UUID
     email: EmailStr
@@ -36,6 +47,29 @@ class UserRead(BaseModel):
     current_streak: int
     longest_streak: int
     last_active_date: datetime | None
+    total_xp: int = 0
+    
+    @computed_field
+    @property
+    def level(self) -> int:
+        return floor(0.1 * sqrt(self.total_xp))
+
+    @computed_field
+    @property
+    def level_name(self) -> LevelTitle:
+        lvl = self.level
+        if lvl < 5:
+            return LevelTitle.NOVICE
+        elif lvl < 10:
+            return LevelTitle.LEARNER
+        elif lvl < 20:
+            return LevelTitle.SEEKER
+        elif lvl < 30:
+            return LevelTitle.SCHOLAR
+        elif lvl < 50:
+            return LevelTitle.MASTER
+        else:
+            return LevelTitle.GRANDMASTER
 
 
 class PasswordChangeData(BaseModel):
