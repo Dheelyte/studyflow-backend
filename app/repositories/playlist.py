@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Set
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,7 +78,8 @@ class PlaylistRepository:
         user_playlist = result.scalar_one_or_none()
         return user_playlist
 
-    async def get_playlist_details(self, playlist_id: int):
+    async def get_playlist_details(self, playlist_id: int, user_id: UUID):
+        # 1. Fetch Playlist with nested data
         stmt = (
             select(Playlist)
             .options(
@@ -89,6 +91,35 @@ class PlaylistRepository:
         )
         result = await self.session.execute(stmt)
         playlist = result.scalar_one_or_none()
+        
+        if not playlist:
+            return None
+
+        # 2. Fetch User's Completed Resources for this playlist
+        # This avoids N+1 queries for progress
+        progress_stmt = (
+            select(UserResourceProgress.resource_id)
+            .join(Resource)
+            .join(Lesson)
+            .join(Module)
+            .where(
+                Module.playlist_id == playlist_id,
+                UserResourceProgress.user_id == user_id,
+                UserResourceProgress.is_completed == True
+            )
+        )
+        progress_result = await self.session.execute(progress_stmt)
+        completed_resource_ids: Set[int] = set(progress_result.scalars().all())
+
+        # 3. Attach progress to resources (in memory)
+        # We perform a traversal to set the is_completed flag
+        # Pydantic schema will pick this up if the attribute exists
+        for module in playlist.modules:
+            for lesson in module.lessons:
+                for resource in lesson.resources:
+                    # Dynamically set attribute - SQLAlchemy models are Python objects
+                    setattr(resource, 'is_completed', resource.id in completed_resource_ids)
+        
         return playlist
 
 

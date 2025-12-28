@@ -32,6 +32,7 @@ class ResourceRead(BaseModel):
     type: str
     description: str
     order: int
+    is_completed: bool = False
     
     model_config = ConfigDict(from_attributes=True)
 

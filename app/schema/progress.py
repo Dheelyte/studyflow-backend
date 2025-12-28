@@ -26,3 +26,11 @@ class UserPlaylistResponse(BaseModel):
     playlist: ListPlaylistResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserResourceProgressResponse(BaseModel):
+    resource_id: int
+    is_completed: bool
+    completed_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)

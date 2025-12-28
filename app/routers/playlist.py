@@ -3,7 +3,7 @@ from typing import Annotated
 
 from ..dependencies.auth import AuthUserDep
 from ..schema.playlist import PlaylistCreate, PlaylistResponse, PlaylistDetailSchema
-from ..schema.progress import UserPlaylistResponse
+from ..schema.progress import UserPlaylistResponse, UserResourceProgressResponse
 from ..db.session import db_session
 from ..schema.resource import Curriculum, CurriculumRequest
 from ..chains.generate_curriculum import generate_curriculum_response
@@ -41,7 +41,7 @@ async def get_playlist(
     auth_user: AuthUserDep,
     playlist_service: PlaylistServiceDep
 ):
-    playlist = await playlist_service.get_playlist_details(playlist_id)
+    playlist = await playlist_service.get_playlist_details(playlist_id, auth_user.id)
     return playlist
 
 
@@ -62,3 +62,15 @@ async def update_resource_status(
 ):
     await playlist_service.update_resource_status(resource_id, auth_user.id)
     return {"message": "resource status updated"}
+
+
+@router.post('/resource/{resource_id}/complete', response_model=UserResourceProgressResponse)
+async def mark_resource_completed(
+    resource_id: int,
+    auth_user: AuthUserDep,
+    playlist_service: PlaylistServiceDep
+):
+    progress = await playlist_service.mark_resource_completed(resource_id, auth_user.id)
+    if not progress:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    return progress

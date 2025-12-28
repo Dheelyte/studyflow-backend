@@ -32,8 +32,8 @@ class PlaylistService:
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
         return playlist
     
-    async def get_playlist_details(self, playlist_id: int):
-        playlist = await self.playlist_repo.get_playlist_details(playlist_id)
+    async def get_playlist_details(self, playlist_id: int, user_id: UUID):
+        playlist = await self.playlist_repo.get_playlist_details(playlist_id, user_id)
         return playlist
     
     async def create_user_playlist(self, playlist_id: int, user_id: UUID):
@@ -113,10 +113,32 @@ class PlaylistService:
                 is_completed=True,
                 completed_at=datetime.now(timezone.utc)
             )
-            self.resource_repo.add(progress)
+            await self.resource_repo.add(progress)
 
         # Check parent module/playlist progress
         # await self._check_playlist_progress(user_id, resource.lesson_id)
+        return progress
+
+    async def mark_resource_completed(self, resource_id: int, user_id: UUID):
+        # Check if resource exists
+        resource = await self.resource_repo.get_resource_by_id(resource_id)
+        if not resource:
+            return None
+        
+        # Get or create progress
+        progress = await self.resource_repo.get_resource_progress(user_id, resource_id)
+        if not progress:
+            progress = UserResourceProgress(
+                user_id=user_id,
+                resource_id=resource_id,
+                is_completed=True,
+                completed_at=datetime.now(timezone.utc)
+            )
+            await self.resource_repo.add(progress)
+        elif not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = datetime.now(timezone.utc)
+            
         return progress
     
     # async def _check_playlist_progress(self, user_id: int, module_id: int):
