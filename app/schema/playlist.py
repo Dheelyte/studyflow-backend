@@ -1,7 +1,7 @@
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from ..models.playlist import PlaylistLevel
 
@@ -20,6 +20,42 @@ class PlaylistResponse(BaseModel):
     timeline: str
     user_id: UUID
     created_at: datetime
-    content: Optional[Dict[str, Any]] = None
+    #content: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ResourceRead(BaseModel):
+    id: int
+    title: str
+    url: str
+    type: str
+    description: str
+    order: int
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LessonRead(BaseModel):
+    id: int
+    title: str
+    estimated_time: str
+    order: int
+    resources: List[ResourceRead] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ModuleRead(BaseModel):
+    id: int
+    title: str
+    description: str
+    order: int
+    lessons: List[LessonRead] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PlaylistDetailSchema(PlaylistResponse):
+    modules: List[ModuleRead] = []
+

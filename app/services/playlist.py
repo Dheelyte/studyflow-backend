@@ -32,6 +32,10 @@ class PlaylistService:
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
         return playlist
     
+    async def get_playlist_details(self, playlist_id: int):
+        playlist = await self.playlist_repo.get_playlist_details(playlist_id)
+        return playlist
+    
     async def create_user_playlist(self, playlist_id: int, user_id: UUID):
         user_playlist = UserPlaylist(
             user_id=user_id,

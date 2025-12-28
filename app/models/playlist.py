@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import enum
 
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum, Integer, String, DateTime, ForeignKey, JSON
 
 from .base import Base
@@ -23,3 +23,5 @@ class Playlist(Base):
     content: Mapped[dict] = mapped_column(JSON, nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    modules = relationship("Module", back_populates="playlist", cascade="all, delete-orphan")

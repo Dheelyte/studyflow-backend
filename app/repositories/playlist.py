@@ -8,6 +8,7 @@ from app.models.playlist import Playlist
 from app.models.progress import UserPlaylist, UserResourceProgress
 from app.models.resource import Resource
 from app.models.user import User
+from app.models.lesson import Lesson
 
 
 class PlaylistRepository:
@@ -75,6 +76,20 @@ class PlaylistRepository:
         )
         user_playlist = result.scalar_one_or_none()
         return user_playlist
+
+    async def get_playlist_details(self, playlist_id: int):
+        stmt = (
+            select(Playlist)
+            .options(
+                selectinload(Playlist.modules)
+                .selectinload(Module.lessons)
+                .selectinload(Lesson.resources)
+            )
+            .where(Playlist.id == playlist_id)
+        )
+        result = await self.session.execute(stmt)
+        playlist = result.scalar_one_or_none()
+        return playlist
 
 
 class ModuleRepository:
