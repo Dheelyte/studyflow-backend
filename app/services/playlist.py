@@ -11,14 +11,8 @@ from app.models.playlist import Playlist
 from app.models.module import Module
 from app.models.resource import Resource
 from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository
-from app.repositories.user import UserRepository
-from app.repositories.activity import ActivityRepository
-from app.repositories.streak import StreakRepository
 from app.schema.playlist import PlaylistCreate
 from app.models.progress import UserPlaylistStatus, UserResourceProgress, UserModuleProgress, UserPlaylist
-from app.models.activity import UserDailyActivity
-from app.services.activity import ActivityService
-from ..services.activity import get_activity_service
 
 
 class PlaylistService:
@@ -42,7 +36,7 @@ class PlaylistService:
         self.streak_repo = streak_repo
         self.activity_service = activity_service
 
-    async def get_playlist(self, playlist_id: int):
+    async def get_playlist(self, playlist_id: int, user_id: UUID):
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
         return playlist
     
@@ -65,10 +59,11 @@ class PlaylistService:
         if playlist_data.content:
         # 1. Create Playlist Object
             new_playlist = Playlist(
-                title=playlist_data.content["curriculum_title"],
-                content=playlist_data.content,
+                title=playlist_data.title,
                 level=playlist_data.level,
                 timeline=playlist_data.timeline,
+                description=playlist_data.description,
+                objectives=playlist_data.objectives,
                 user_id=user_id,
             )
             new_playlist = await self.playlist_repo.add(new_playlist)
