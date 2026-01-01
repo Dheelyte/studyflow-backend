@@ -19,11 +19,19 @@ class ListPlaylistResponse(BaseModel):
     title: str
 
 
+
+class PlaylistProgress(BaseModel):
+    completed_modules: int
+    total_modules: int
+    percentage: float
+
+
 class UserPlaylistResponse(BaseModel):
     id: int
     user_id: UUID
     created_at: datetime
     playlist: ListPlaylistResponse
+    progress: PlaylistProgress | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

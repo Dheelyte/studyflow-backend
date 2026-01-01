@@ -16,6 +16,7 @@ from app.repositories.streak import StreakRepository
 from app.repositories.user import UserRepository
 from app.schema.playlist import PlaylistCreate
 from app.models.progress import UserPlaylistStatus, UserResourceProgress, UserModuleProgress, UserPlaylist
+from app.schema.progress import UserPlaylistResponse, PlaylistProgress, ListPlaylistResponse
 from app.services.activity import ActivityService, get_activity_service
 
 
@@ -56,8 +57,37 @@ class PlaylistService:
         await self.playlist_repo.add(user_playlist)
     
     async def get_user_playlists(self, user_id: UUID):
-        playlists = await self.playlist_repo.get_user_playlists(user_id)
-        return playlists
+        playlist_records = await self.playlist_repo.get_user_playlists(user_id)
+        
+        results = []
+        for record in playlist_records:
+            user_playlist = record[0] # UserPlaylist model
+            total = record.total_resources
+            completed = record.completed_resources
+            
+            # Calculate percentage
+            percentage = 0.0
+            if total > 0:
+                percentage = (completed / total) * 100
+                
+            # Create response object manually since we're enriching it
+            response = UserPlaylistResponse(
+                id=user_playlist.id,
+                user_id=user_playlist.user_id,
+                created_at=user_playlist.created_at,
+                playlist=ListPlaylistResponse(
+                    id=user_playlist.playlist.id,
+                    title=user_playlist.playlist.title
+                ),
+                progress=PlaylistProgress(
+                    completed_modules=record.completed_modules,
+                    total_modules=record.total_modules,
+                    percentage=round(percentage, 1)
+                )
+            )
+            results.append(response)
+            
+        return results
 
     async def create_playlist_from_curriculum(self, playlist_data: PlaylistCreate, user_id: UUID) -> Playlist:
         if playlist_data.content:
@@ -109,6 +139,27 @@ class PlaylistService:
         
         return new_playlist
 
+        return progress
+
+    async def _check_and_update_module_progress(self, user_id: UUID, resource_id: int):
+        # 1. Get Resource to find Lesson -> Module
+        resource = await self.resource_repo.get_resource_by_id(resource_id)
+        if not resource: 
+            return # Should exist
+        
+        lesson = await self.lesson_repo.get_lesson_by_id(resource.lesson_id)
+        if not lesson:
+            return
+            
+        module_id = lesson.module_id
+        
+        # 2. Check counts
+        total_resources = await self.module_repo.get_module_resources_count(module_id)
+        completed_resources = await self.module_repo.get_module_completed_resources_count(module_id, user_id)
+        
+        if completed_resources >= total_resources and total_resources > 0:
+            await self.module_repo.mark_module_completed(module_id, user_id)
+
     async def mark_resource_completed(self, resource_id: int, user_id: UUID):
         # Check if resource exists
         resource = await self.resource_repo.get_resource_by_id(resource_id)
@@ -118,33 +169,44 @@ class PlaylistService:
         # Get or create progress
         progress = await self.resource_repo.get_resource_progress(user_id, resource_id)
         now = datetime.now(timezone.utc)
-        if progress:
-            return progress
-
-        progress = UserResourceProgress(
-            user_id=user_id,
-            resource_id=resource_id,
-            is_completed=True,
-            completed_at=now
-        )
-        await self.resource_repo.add(progress)
-
-        # Activity Tracking Logic
-        await self.activity_service.update_daily_activity(user_id)
-
-        # Streak Tracking Logic
-        await self.streak_repo.update_user_streak(user_id)
         
-        # Gamification: Award XP
-        user = await self.user_repo.get_by_id(user_id)
-        if user:
-            # Base completion XP provided by resource, defaulting to 10 if not implemented on model yet
-            # Or constant base
-            BASE_XP = 10 
-            multiplier = 1 + (user.current_streak * 0.1)
-            earned_xp = int(BASE_XP * multiplier)
-            user.total_xp += earned_xp
-            await self.user_repo.add(user)
+        is_new_completion = False
+        if not progress:
+            is_new_completion = True
+            progress = UserResourceProgress(
+                user_id=user_id,
+                resource_id=resource_id,
+                is_completed=True,
+                completed_at=now
+            )
+            await self.resource_repo.add(progress)
+        elif not progress.is_completed:
+            is_new_completion = True
+            progress.is_completed = True
+            progress.completed_at = now
+            # Assume add/flush handles update
+            await self.resource_repo.add(progress)
+
+        if is_new_completion:
+            # Activity Tracking Logic
+            await self.activity_service.update_daily_activity(user_id)
+
+            # Streak Tracking Logic
+            await self.streak_repo.update_user_streak(user_id)
+            
+            # Module Progress Logic
+            await self._check_and_update_module_progress(user_id, resource_id)
+            
+            # Gamification: Award XP
+            user = await self.user_repo.get_by_id(user_id)
+            if user:
+                # Base completion XP provided by resource, defaulting to 10 if not implemented on model yet
+                # Or constant base
+                BASE_XP = 10 
+                multiplier = 1 + (user.current_streak * 0.1)
+                earned_xp = int(BASE_XP * multiplier)
+                user.total_xp += earned_xp
+                await self.user_repo.add(user)
 
         return progress
     
