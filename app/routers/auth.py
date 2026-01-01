@@ -133,7 +133,7 @@ async def refresh_token(
     - A success message confirming the access token has been renewed.
     """
 
-    auth_token_service.refresh_user_token(request, response)
+    await auth_token_service.refresh_user_token(request, response)
 
     return MsgResponse(message="Token refresh successful")
 

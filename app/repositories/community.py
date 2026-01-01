@@ -10,7 +10,6 @@ class CommunityRepository:
     async def create(self, community: Community) -> Community:
         self.session.add(community)
         await self.session.flush()
-        await self.session.refresh(community)
         return community
     
     async def get_by_id(self, community_id: int) -> Community | None:

@@ -10,6 +10,8 @@ class PlaylistCreate(BaseModel):
     title: str
     level: PlaylistLevel
     timeline: str
+    description: str
+    objectives: list[str]
     content: Optional[Dict[str, Any]] = None
 
 
@@ -18,6 +20,8 @@ class PlaylistResponse(BaseModel):
     title: str
     level: PlaylistLevel
     timeline: str
+    description: str | None
+    objectives: list[str] | None
     user_id: UUID
     created_at: datetime
     #content: Optional[Dict[str, Any]] = None

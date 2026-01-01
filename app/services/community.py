@@ -23,15 +23,10 @@ class CommunityService:
             created_by=created_by
         )
         created = await self.community_repo.create(new_community)
+        await self.community_repo.add_member(created_by, created.id)
         # Populate ephemeral fields for response
-        setattr(created, "member_count", 0)
-        setattr(created, "is_member", True) # Creator joins by default? Should check logic. 
-        # Existing logic didn't auto-join in create_community method, but UI might assume it.
-        # Let's auto-join creator? The prompt didn't specify, but typical.
-        # For now, let's keep it simple. If not auto-joined, is_member=False.
-        # Actually in Context, we optimistically set isJoined=True. Puts onus on UI to call join?
-        # Let's stick to existing behavior.
-        setattr(created, "is_member", False) 
+        setattr(created, "member_count", 1)
+        setattr(created, "is_member", True)
         return created
     
     async def get_community(self, community_id: int, user_id: int | None = None) -> Community:

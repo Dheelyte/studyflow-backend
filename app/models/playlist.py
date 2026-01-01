@@ -8,9 +8,9 @@ from .base import Base
 
 
 class PlaylistLevel(str, enum.Enum):
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+    BEGINNER = "Beginner"
+    INTERMEDIATE = "Intermediate"
+    ADVANCED = "Advanced"
 
 
 class Playlist(Base):
@@ -20,7 +20,9 @@ class Playlist(Base):
     title: Mapped[str] = mapped_column(String)
     level: Mapped[PlaylistLevel] = mapped_column(Enum(PlaylistLevel), default=PlaylistLevel.BEGINNER)
     timeline: Mapped[str] = mapped_column(String)
-    content: Mapped[dict] = mapped_column(JSON, nullable=True)
+    description: Mapped[str] = mapped_column(String)
+    objectives: Mapped[list[str]] = mapped_column(JSON)
+    # content: Mapped[dict] = mapped_column(JSON, nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 

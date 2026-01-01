@@ -10,9 +10,13 @@ from app.models.lesson import Lesson
 from app.models.playlist import Playlist
 from app.models.module import Module
 from app.models.resource import Resource
+from app.repositories.activity import ActivityRepository
 from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository
+from app.repositories.streak import StreakRepository
+from app.repositories.user import UserRepository
 from app.schema.playlist import PlaylistCreate
 from app.models.progress import UserPlaylistStatus, UserResourceProgress, UserModuleProgress, UserPlaylist
+from app.services.activity import ActivityService, get_activity_service
 
 
 class PlaylistService:
@@ -143,6 +147,40 @@ class PlaylistService:
             await self.user_repo.add(user)
 
         return progress
+    
+    # async def _check_playlist_progress(self, user_id: int, module_id: int):
+    #     # Find playlist_id from module
+    #     module = await self.module_repo.get_module_by_id(module_id)
+    #     if not module:
+    #         return
+    #     playlist_id = module.playlist_id
+        
+    #     # Check all modules in playlist
+    #     # Ideally checking resources is more granular/accurate
+    #     # Strategy: Get all resources for this playlist
+    #     # Check if a UserResourceProgress exists and is_completed for ALL resources
+        
+    #     # 1. Get total resource count
+    #     total_resources = await self.playlist_repo.get_all_playlist_resources()
+    #     if total_resources == 0:
+    #         return # Empty playlist
+    #     # 2. Get completed resource count for user
+    #     completed_resources = await self.playlist_repo.get_completed_resource_count(
+    #         playlist_id, user_id
+    #     )
+    #     # Update UserPlaylist status
+    #     user_playlist = await self.playlist_repo.get_user_playlist(user_playlist)
+    #     new_status = UserPlaylistStatus.COMPLETED if completed_resources >= total_resources else UserPlaylistStatus.ACTIVE
+    #     if user_playlist:
+    #         user_playlist.status = new_status
+        # else:
+        #     user_playlist = UserPlaylist(
+        #         user_id=user_id,
+        #         playlist_id=playlist_id,
+        #         status=new_status,
+        #         joined_at=datetime.now(timezone.utc)
+        #     )
+        #     self.playlist_repo.add(user_playlist)
 
 
 def get_playlist_repo(session: AsyncSession = Depends(get_session)):
