@@ -7,6 +7,7 @@ from ..schema.user import PasswordChangeData, UserRead
 from ..services.auth import Hasher
 from ..services.user import UserServiceDep
 from ..services.activity import ActivityServiceDep
+from ..repositories.streak import StreakRepoDep
 from ..schema.activity import UserActivity, UserActivityResponse
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["Users"], dependencies=[Depends(db_ses
 
 
 @router.get("/me", response_model=DataResponse[UserRead])
-async def get_current_user_info(auth_user: AuthUserDep):
+async def get_current_user_info(auth_user: AuthUserDep, streak_repo: StreakRepoDep):
     """
     Retrieve the authenticated user's profile information.
 
@@ -32,6 +33,11 @@ async def get_current_user_info(auth_user: AuthUserDep):
     **Returns:**
     - The authenticated user's information (`UserRead`).
     """
+    
+    # Calculate streak on demand to avoid stale data
+    refreshed_user = await streak_repo.refresh_streak(auth_user.id)
+    if refreshed_user:
+        return DataResponse(data=refreshed_user)
 
     return DataResponse(data=auth_user)
 

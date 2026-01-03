@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Enum, Integer, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Enum, Integer, String, DateTime, ForeignKey, JSON, UUID
 
 from .base import Base
 
@@ -23,7 +23,7 @@ class Playlist(Base):
     description: Mapped[str] = mapped_column(String)
     objectives: Mapped[list[str]] = mapped_column(JSON)
     # content: Mapped[dict] = mapped_column(JSON, nullable=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     modules = relationship("Module", back_populates="playlist", cascade="all, delete-orphan")

@@ -1,8 +1,8 @@
 """Add models
 
-Revision ID: 8babb544ccab
+Revision ID: 8325357acd4c
 Revises: 
-Create Date: 2025-12-27 21:40:02.906168
+Create Date: 2026-01-03 13:26:37.341696
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8babb544ccab'
+revision: str = '8325357acd4c'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,6 +28,10 @@ def upgrade() -> None:
     sa.Column('last_name', sa.String(length=255), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('current_streak', sa.Integer(), nullable=False),
+    sa.Column('longest_streak', sa.Integer(), nullable=False),
+    sa.Column('last_active_date', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('total_xp', sa.Integer(), nullable=False),
     sa.Column('id', sa.UUID(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
@@ -59,13 +63,26 @@ def upgrade() -> None:
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('level', sa.Enum('BEGINNER', 'INTERMEDIATE', 'ADVANCED', name='playlistlevel'), nullable=False),
     sa.Column('timeline', sa.String(), nullable=False),
-    sa.Column('content', sa.JSON(), nullable=True),
+    sa.Column('description', sa.String(), nullable=False),
+    sa.Column('objectives', sa.JSON(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_playlists_id'), 'playlists', ['id'], unique=False)
+    op.create_table('user_daily_activity',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
+    sa.Column('activity_count', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'date', name='unique_user_daily_activity')
+    )
+    op.create_index(op.f('ix_user_daily_activity_date'), 'user_daily_activity', ['date'], unique=False)
+    op.create_index(op.f('ix_user_daily_activity_id'), 'user_daily_activity', ['id'], unique=False)
+    op.create_index(op.f('ix_user_daily_activity_user_id'), 'user_daily_activity', ['user_id'], unique=False)
     op.create_table('community_members',
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('community_id', sa.Integer(), nullable=False),
@@ -198,6 +215,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_modules_id'), table_name='modules')
     op.drop_table('modules')
     op.drop_table('community_members')
+    op.drop_index(op.f('ix_user_daily_activity_user_id'), table_name='user_daily_activity')
+    op.drop_index(op.f('ix_user_daily_activity_id'), table_name='user_daily_activity')
+    op.drop_index(op.f('ix_user_daily_activity_date'), table_name='user_daily_activity')
+    op.drop_table('user_daily_activity')
     op.drop_index(op.f('ix_playlists_id'), table_name='playlists')
     op.drop_table('playlists')
     op.drop_index(op.f('ix_password_reset_tokens_code_hash'), table_name='password_reset_tokens')
