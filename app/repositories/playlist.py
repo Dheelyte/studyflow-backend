@@ -10,6 +10,7 @@ from app.models.progress import UserPlaylist, UserResourceProgress, UserModulePr
 from app.models.resource import Resource
 from app.models.user import User
 from app.models.lesson import Lesson
+from app.models.quiz import Quiz
 
 
 class PlaylistRepository:
@@ -194,7 +195,8 @@ class ModuleRepository:
     
     async def get_module_by_id(self, module_id: int):
         result = await self.session.execute(
-            select(Module).where(Module.id == module_id)
+            select(Module)
+            .where(Module.id == module_id)
         )
         module = result.scalar_one_or_none()
         return module
@@ -296,3 +298,13 @@ class LessonRepository:
         )
         progress = result.scalar_one_or_none()
         return progress
+
+
+class QuizRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_quiz_by_module_id(self, module_id: int) -> Quiz | None:
+        stmt = select(Quiz).where(Quiz.module_id == module_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

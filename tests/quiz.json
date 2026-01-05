@@ -1,0 +1,234 @@
+{
+    "questions": [
+        {
+            "id": 1,
+            "text": "What is the primary distinction between Data Analysis and Data Science regarding their core objectives?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Data Analysis focuses on creating complex machine learning algorithms, while Data Science focuses on data entry."
+                },
+                {
+                    "id": "b",
+                    "text": "Data Analysis focuses on answering questions about what happened in the past, while Data Science focuses on predicting what will happen in the future."
+                },
+                {
+                    "id": "c",
+                    "text": "Data Analysis requires unstructured data, while Data Science only uses structured data."
+                },
+                {
+                    "id": "d",
+                    "text": "Data Analysis involves building data pipelines, while Data Science involves visualizing dashboards."
+                }
+            ],
+            "correctOptionId": "b"
+        },
+        {
+            "id": 2,
+            "text": "Which of the following datasets is an example of unstructured data?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "An Excel spreadsheet containing sales transaction records."
+                },
+                {
+                    "id": "b",
+                    "text": "A SQL database table listing customer names and addresses."
+                },
+                {
+                    "id": "c",
+                    "text": "A folder containing audio recordings of customer service calls."
+                },
+                {
+                    "id": "d",
+                    "text": "A CSV file with inventory counts organized by product ID."
+                }
+            ],
+            "correctOptionId": "c"
+        },
+        {
+            "id": 3,
+            "text": "In the 'Process' phase of the 6 Steps of Analysis (Ask, Prepare, Process, Analyze, Share, Act), what is the primary task performed by an analyst?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Creating visualizations to share with stakeholders."
+                },
+                {
+                    "id": "b",
+                    "text": "Cleaning the data to fix errors, remove duplicates, and handle missing values."
+                },
+                {
+                    "id": "c",
+                    "text": "Collecting the data from various sources."
+                },
+                {
+                    "id": "d",
+                    "text": "Defining the business problem and objectives."
+                }
+            ],
+            "correctOptionId": "b"
+        },
+        {
+            "id": 4,
+            "text": "An analyst is reviewing a dataset imported from an external source and notices cell A2 contains the text \"  Product A  \" with extra spaces at the beginning and end. Which function should be used to remove these extra spaces?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "=TRIM(A2)"
+                },
+                {
+                    "id": "b",
+                    "text": "=CLEAN(A2)"
+                },
+                {
+                    "id": "c",
+                    "text": "=REMOVE(A2)"
+                },
+                {
+                    "id": "d",
+                    "text": "=SPACE(A2)"
+                }
+            ],
+            "correctOptionId": "a"
+        },
+        {
+            "id": 5,
+            "text": "A data analyst chooses to only analyze survey results from customers who provided positive feedback, ignoring negative reviews. What type of ethical issue does this represent?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Data Privacy Violation"
+                },
+                {
+                    "id": "b",
+                    "text": "Selection Bias"
+                },
+                {
+                    "id": "c",
+                    "text": "Algorithmic Fairness"
+                },
+                {
+                    "id": "d",
+                    "text": "Transparency"
+                }
+            ],
+            "correctOptionId": "b"
+        },
+        {
+            "id": 6,
+            "text": "You need to assign a status of \"Pass\" or \"Fail\" based on a score in cell B2. If the score is 70 or higher, it is a \"Pass\". Which formula demonstrates the correct syntax?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "=IF(B2 >= 70, \"Pass\", \"Fail\")"
+                },
+                {
+                    "id": "b",
+                    "text": "=IF(B2 >= 70, \"Pass\")"
+                },
+                {
+                    "id": "c",
+                    "text": "=CHECK(B2, 70, \"Pass\", \"Fail\")"
+                },
+                {
+                    "id": "d",
+                    "text": "=THEN(B2 > 69, \"Pass\", \"Fail\")"
+                }
+            ],
+            "correctOptionId": "a"
+        },
+        {
+            "id": 7,
+            "text": "Consider the function `=VLOOKUP(102, A2:D50, 3, FALSE)`. What does the number `3` represent in this formula?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "The value being looked up."
+                },
+                {
+                    "id": "b",
+                    "text": "The total number of rows in the table."
+                },
+                {
+                    "id": "c",
+                    "text": "The column index number from which to retrieve the result."
+                },
+                {
+                    "id": "d",
+                    "text": "The range lookup type (Exact match)."
+                }
+            ],
+            "correctOptionId": "c"
+        },
+        {
+            "id": 8,
+            "text": "Which feature would you use to automatically change the background color of cells in a 'Sales' column to red if the value is below $500?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Format Painter"
+                },
+                {
+                    "id": "b",
+                    "text": "Data Validation"
+                },
+                {
+                    "id": "c",
+                    "text": "Conditional Formatting"
+                },
+                {
+                    "id": "d",
+                    "text": "Cell Styles"
+                }
+            ],
+            "correctOptionId": "c"
+        },
+        {
+            "id": 9,
+            "text": "You have created a Pivot Table and want to filter the data visually by clicking on specific buttons representing 'Region'. Which tool should you insert?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Timeline"
+                },
+                {
+                    "id": "b",
+                    "text": "Slicer"
+                },
+                {
+                    "id": "c",
+                    "text": "Sparkline"
+                },
+                {
+                    "id": "d",
+                    "text": "Filter View"
+                }
+            ],
+            "correctOptionId": "b"
+        },
+        {
+            "id": 10,
+            "text": "In a Pivot Table, you want to display the sum of 'Total Sales' as a percentage of the Grand Total rather than the raw currency value. How should you configure the value field settings?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Change the number format to 'Accounting'."
+                },
+                {
+                    "id": "b",
+                    "text": "Use the 'Show Values As' tab and select '% of Grand Total'."
+                },
+                {
+                    "id": "c",
+                    "text": "Create a new Calculated Field using =Sales/100."
+                },
+                {
+                    "id": "d",
+                    "text": "Apply Conditional Formatting with Data Bars."
+                }
+            ],
+            "correctOptionId": "b"
+        }
+    ]
+}

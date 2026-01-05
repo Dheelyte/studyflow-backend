@@ -1,8 +1,8 @@
 """Add models
 
-Revision ID: 8325357acd4c
+Revision ID: 1308ed04f3cb
 Revises: 
-Create Date: 2026-01-03 13:26:37.341696
+Create Date: 2026-01-05 21:30:41.008590
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8325357acd4c'
+revision: str = '1308ed04f3cb'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -95,6 +95,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('description', sa.String(), nullable=False),
+    sa.Column('topics_covered', sa.JSON(), nullable=False),
     sa.Column('playlist_id', sa.Integer(), nullable=False),
     sa.Column('order', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['playlist_id'], ['playlists.id'], ),
@@ -155,6 +156,15 @@ def upgrade() -> None:
     sa.UniqueConstraint('user_id', 'post_id', name='unique_user_post_like')
     )
     op.create_index(op.f('ix_likes_id'), 'likes', ['id'], unique=False)
+    op.create_table('quizzes',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('module_id', sa.Integer(), nullable=False),
+    sa.Column('questions', sa.JSON(), nullable=False),
+    sa.ForeignKeyConstraint(['module_id'], ['modules.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('module_id')
+    )
+    op.create_index(op.f('ix_quizzes_id'), 'quizzes', ['id'], unique=False)
     op.create_table('user_module_progress',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.UUID(), nullable=False),
@@ -202,6 +212,8 @@ def downgrade() -> None:
     op.drop_table('resources')
     op.drop_index(op.f('ix_user_module_progress_id'), table_name='user_module_progress')
     op.drop_table('user_module_progress')
+    op.drop_index(op.f('ix_quizzes_id'), table_name='quizzes')
+    op.drop_table('quizzes')
     op.drop_index(op.f('ix_likes_id'), table_name='likes')
     op.drop_table('likes')
     op.drop_index(op.f('ix_lessons_id'), table_name='lessons')

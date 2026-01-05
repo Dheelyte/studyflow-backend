@@ -47,7 +47,7 @@ def create_generate_curriculum_chain():
     return chain
 
 
-def generate_curriculum_response(topic: str, experience_level: str, duration: str):
+async def generate_curriculum_response(topic: str, experience_level: str, duration: str):
     if USE_MOCK_DATA:
         return load_mock_curriculum()
     

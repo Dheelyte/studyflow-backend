@@ -55,6 +55,7 @@ class ModuleRead(BaseModel):
     id: int
     title: str
     description: str
+    topics_covered: list[str]
     order: int
     lessons: List[LessonRead] = []
     

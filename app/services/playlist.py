@@ -11,7 +11,7 @@ from app.models.playlist import Playlist
 from app.models.module import Module
 from app.models.resource import Resource
 from app.repositories.activity import ActivityRepository
-from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository
+from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository, QuizRepository
 from app.repositories.streak import StreakRepository
 from app.repositories.user import UserRepository
 from app.schema.playlist import PlaylistCreate
@@ -30,7 +30,8 @@ class PlaylistService:
         user_repo: UserRepository,
         activity_repo: ActivityRepository,
         streak_repo: StreakRepository,
-        activity_service: ActivityService
+        activity_service: ActivityService,
+        quiz_repo: QuizRepository # Add this
     ):
         self.playlist_repo = playlist_repo
         self.module_repo = module_repo
@@ -40,6 +41,7 @@ class PlaylistService:
         self.activity_repo = activity_repo
         self.streak_repo = streak_repo
         self.activity_service = activity_service
+        self.quiz_repo = quiz_repo # Add this
 
     async def get_playlist(self, playlist_id: int, user_id: UUID):
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
@@ -106,9 +108,11 @@ class PlaylistService:
         if playlist_data.content and 'modules' in playlist_data.content:
             modules_data = playlist_data.content['modules']
             for i, mod_data in enumerate(modules_data):
+                module_topics_covered = []
                 new_module = Module(
                     title=mod_data.get('module_title', 'Untitled Module'),
                     description=mod_data.get('description', ''),
+                    topics_covered=[],
                     order=(i + 1),
                     playlist_id=new_playlist.id
                 )
@@ -123,6 +127,7 @@ class PlaylistService:
                         order=(j + 1)
                     )
                     new_lesson = await self.lesson_repo.add(new_lesson)
+                    module_topics_covered.extend(les_data.get('topics_covered', []))
                     resources_data = les_data.get("resources")
                     for k, res_data in enumerate(resources_data):
                         new_resource = Resource(
@@ -134,8 +139,11 @@ class PlaylistService:
                             lesson_id=new_lesson.id
                         )
                         await self.resource_repo.add(new_resource)
+                new_module.topics_covered = module_topics_covered
+                await self.module_repo.add(new_module)
             
             await self.create_user_playlist(new_playlist.id, user_id)
+            
         
         return new_playlist
 
@@ -209,6 +217,15 @@ class PlaylistService:
                 await self.user_repo.add(user)
 
         return progress
+
+    async def get_quiz_by_module_id(self, module_id: int):
+        quiz = await self.quiz_repo.get_quiz_by_module_id(module_id)
+        return quiz
+
+    async def get_module_by_id(self, module_id: int):
+        module = await self.module_repo.get_module_by_id(module_id)
+        return module
+
     
     # async def _check_playlist_progress(self, user_id: int, module_id: int):
     #     # Find playlist_id from module
@@ -266,6 +283,9 @@ def get_activity_repo(session: AsyncSession = Depends(get_session)):
 def get_streak_repo(session: AsyncSession = Depends(get_session)):
     return StreakRepository(session)
 
+def get_quiz_repo(session: AsyncSession = Depends(get_session)):
+    return QuizRepository(session)
+
 def get_playlist_service(
         playlist_repo: PlaylistRepository = Depends(get_playlist_repo),
         module_repo: ModuleRepository = Depends(get_module_repo),
@@ -274,7 +294,8 @@ def get_playlist_service(
         user_repo: UserRepository = Depends(get_user_repo),
         activity_repo: ActivityRepository = Depends(get_activity_repo),
         streak_repo: StreakRepository = Depends(get_streak_repo),
-        activity_service: ActivityService = Depends(get_activity_service)
+        activity_service: ActivityService = Depends(get_activity_service),
+        quiz_repo: QuizRepository = Depends(get_quiz_repo)
     ):
     return PlaylistService(
         playlist_repo,
@@ -284,7 +305,8 @@ def get_playlist_service(
         user_repo,
         activity_repo,
         streak_repo,
-        activity_service
+        activity_service,
+        quiz_repo
     )
 
 PlaylistServiceDep = Annotated[PlaylistService, Depends(get_playlist_service)]

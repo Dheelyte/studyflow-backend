@@ -7,17 +7,18 @@ from ..schema.progress import UserPlaylistResponse, UserResourceProgressResponse
 from ..db.session import db_session
 from ..schema.resource import Curriculum, CurriculumRequest
 from ..chains.generate_curriculum import generate_curriculum_response
+from ..chains.generate_quiz import generate_quiz_response
 from ..services.playlist import PlaylistServiceDep
+from ..schema.quiz import QuizResponse, QuizBase, QuizRequest
 
 
 router = APIRouter(
     tags=["Curriculum"], dependencies=[Depends(db_session)]
 )
 
-
 @router.get("/generate-curriculum", response_model=Curriculum)
 async def generate_curriculum(request: Annotated[CurriculumRequest, Query()]):
-    curriculum = generate_curriculum_response(
+    curriculum = await generate_curriculum_response(
         topic=request.topic,
         experience_level=request.experience_level,
         duration=request.duration
@@ -64,3 +65,34 @@ async def mark_resource_completed(
     if not progress:
         raise HTTPException(status_code=404, detail="Resource not found")
     return progress
+
+
+@router.post('/modules/{module_id}/generate-quiz', response_model=QuizBase)
+async def generate_quiz(
+    quiz_data: QuizRequest,
+    module_id: int,
+    auth_user: AuthUserDep,
+    playlist_service: PlaylistServiceDep
+):
+    module = await playlist_service.get_module_by_id(module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    
+    quiz = await generate_quiz_response(
+        curriculum_title=quiz_data.curriculum_title,
+        experience_level=quiz_data.experience_level,
+        topics_covered=module.topics_covered,
+    )
+    return quiz
+
+
+@router.get('/modules/{module_id}/quiz', response_model=QuizResponse | None)
+async def get_module_quiz(
+    module_id: int,
+    auth_user: AuthUserDep,
+    playlist_service: PlaylistServiceDep
+):
+    quiz = await playlist_service.get_quiz_by_module_id(module_id)
+    if not quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz

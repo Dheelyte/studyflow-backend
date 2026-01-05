@@ -9,6 +9,7 @@ from .post import Post
 from .comment import Comment
 from .like import Like
 from .activity import UserDailyActivity
+from .quiz import Quiz
 
 
 # This ensures all models are loaded before create_all() is called
@@ -18,6 +19,7 @@ __all__ = [
     "Module",
     "Lesson",
     "Resource",
+    "Quiz",
     "UserModuleProgress",
     "UserResourceProgress",
     "UserPlaylist",

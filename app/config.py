@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     TEMPERATURE: float = Field(default=0.7, ge=0.0, le=2.0)
     MAX_OUTPUT_TOKENS: int = Field(default=2048, gt=0)
 
+    # --- Quiz Settings ---
+    QUIZ_NUM_QUESTIONS: int = Field(default=10, gt=0)
+
     # --- Constants ---
     API_V1_STR: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:3000"

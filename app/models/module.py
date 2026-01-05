@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Integer, String, ForeignKey, JSON
 from .base import Base
 
 
@@ -9,8 +9,10 @@ class Module(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
+    topics_covered: Mapped[list[str]] = mapped_column(JSON)
     playlist_id: Mapped[int] = mapped_column(ForeignKey("playlists.id"))
     order: Mapped[int] = mapped_column(Integer)
 
     playlist = relationship("Playlist", back_populates="modules")
     lessons = relationship("Lesson", back_populates="module", cascade="all, delete-orphan")
+    quiz = relationship("Quiz", uselist=False, back_populates="module", cascade="all, delete-orphan")
