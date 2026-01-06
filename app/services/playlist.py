@@ -79,7 +79,8 @@ class PlaylistService:
                 created_at=user_playlist.created_at,
                 playlist=ListPlaylistResponse(
                     id=user_playlist.playlist.id,
-                    title=user_playlist.playlist.title
+                    title=user_playlist.playlist.title,
+                    level=user_playlist.playlist.level,
                 ),
                 progress=PlaylistProgress(
                     completed_modules=record.completed_modules,

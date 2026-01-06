@@ -2,6 +2,7 @@ from uuid import UUID
 from pydantic import UUID4, BaseModel, ConfigDict
 from datetime import datetime
 
+from ..models.playlist import PlaylistLevel
 from ..models.progress import UserPlaylistStatus
 
 
@@ -17,7 +18,7 @@ class UserPlaylistUpdate(BaseModel):
 class ListPlaylistResponse(BaseModel):
     id: int
     title: str
-
+    level: PlaylistLevel
 
 
 class PlaylistProgress(BaseModel):

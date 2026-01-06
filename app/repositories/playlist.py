@@ -93,7 +93,7 @@ class PlaylistRepository:
             )
             .options(
                 selectinload(UserPlaylist.playlist)
-                .load_only(Playlist.id, Playlist.title)
+                .load_only(Playlist.id, Playlist.title, Playlist.level)
             )
             .outerjoin(total_resources_sub, total_resources_sub.c.playlist_id == UserPlaylist.playlist_id)
             .outerjoin(completed_resources_sub, completed_resources_sub.c.playlist_id == UserPlaylist.playlist_id)
