@@ -5,19 +5,21 @@ from uuid import UUID
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_session
-from app.models.lesson import Lesson
-from app.models.playlist import Playlist
-from app.models.module import Module
-from app.models.resource import Resource
-from app.repositories.activity import ActivityRepository
-from app.repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository, QuizRepository
-from app.repositories.streak import StreakRepository
-from app.repositories.user import UserRepository
-from app.schema.playlist import PlaylistCreate
-from app.models.progress import UserPlaylistStatus, UserResourceProgress, UserModuleProgress, UserPlaylist
-from app.schema.progress import UserPlaylistResponse, PlaylistProgress, ListPlaylistResponse
-from app.services.activity import ActivityService, get_activity_service
+from ..db.session import get_session
+from ..models.lesson import Lesson
+from ..models.playlist import Playlist
+from ..models.module import Module
+from ..models.resource import Resource
+from ..repositories.activity import ActivityRepository
+from ..repositories.playlist import ModuleRepository, PlaylistRepository, LessonRepository, ResourceRepository, QuizRepository
+from ..repositories.streak import StreakRepository
+from ..repositories.user import UserRepository
+from ..schema.playlist import PlaylistCreate
+from ..models.progress import UserResourceProgress, UserPlaylist
+from ..schema.progress import UserPlaylistResponse, PlaylistProgress, ListPlaylistResponse
+from ..services.activity import ActivityService, get_activity_service
+from ..schema.quiz import QuizSubmission, QuizSubmissionResponse, QuizBase
+from ..chains.generate_quiz import generate_quiz_response
 
 
 class PlaylistService:
@@ -31,7 +33,6 @@ class PlaylistService:
         activity_repo: ActivityRepository,
         streak_repo: StreakRepository,
         activity_service: ActivityService,
-        quiz_repo: QuizRepository # Add this
     ):
         self.playlist_repo = playlist_repo
         self.module_repo = module_repo
@@ -41,7 +42,6 @@ class PlaylistService:
         self.activity_repo = activity_repo
         self.streak_repo = streak_repo
         self.activity_service = activity_service
-        self.quiz_repo = quiz_repo # Add this
 
     async def get_playlist(self, playlist_id: int, user_id: UUID):
         playlist = await self.playlist_repo.get_playlist_by_id(playlist_id)
@@ -147,7 +147,56 @@ class PlaylistService:
         
         return new_playlist
 
-        return progress
+    async def generate_module_quiz(
+        self,
+        module_id: int,
+        curriculum_title: str,
+        experience_level: str
+    ) -> QuizBase | None:
+        # Stateless: Generate Only
+        module = await self.module_repo.get_module_by_id(module_id)
+        if not module:
+             return None
+             
+        generated_quiz = await generate_quiz_response(
+            curriculum_title=curriculum_title,
+            experience_level=experience_level,
+            topics_covered=module.topics_covered
+        )
+        return generated_quiz
+
+    async def submit_quiz(self, module_id: int, submission: QuizSubmission, user_id: UUID) -> QuizSubmissionResponse | None:
+        # Stateless Verification
+        questions = submission.questions
+        total_questions = len(questions)
+        correct_count = 0
+        
+        # Map question ID to question for easier lookup
+        question_map = {q.id: q for q in questions}
+        
+        for q_id, selected_option_id in submission.answers.items():
+            if q_id in question_map:
+                question = question_map[q_id]
+                # Check correctness
+                if question.correctOptionId == selected_option_id:
+                    correct_count += 1
+                    
+        score = (correct_count / total_questions) * 100 if total_questions > 0 else 0
+        passed = score >= 70 
+        
+        if passed:
+            await self.module_repo.mark_module_quiz_completed(module_id, user_id)
+            # Gamification: Award XP for Quiz
+            # Logic similar to resource completion
+            user = await self.user_repo.get_by_id(user_id)
+            if user:
+                 BASE_XP = 50 # Bigger reward for quiz
+                 user.total_xp += BASE_XP
+                 await self.user_repo.add(user)
+
+        return QuizSubmissionResponse(
+            passed=passed
+        )
 
     async def _check_and_update_module_progress(self, user_id: UUID, resource_id: int):
         # 1. Get Resource to find Lesson -> Module
@@ -218,10 +267,6 @@ class PlaylistService:
 
         return progress
 
-    async def get_quiz_by_module_id(self, module_id: int):
-        quiz = await self.quiz_repo.get_quiz_by_module_id(module_id)
-        return quiz
-
     async def get_module_by_id(self, module_id: int):
         module = await self.module_repo.get_module_by_id(module_id)
         return module
@@ -283,8 +328,6 @@ def get_activity_repo(session: AsyncSession = Depends(get_session)):
 def get_streak_repo(session: AsyncSession = Depends(get_session)):
     return StreakRepository(session)
 
-def get_quiz_repo(session: AsyncSession = Depends(get_session)):
-    return QuizRepository(session)
 
 def get_playlist_service(
         playlist_repo: PlaylistRepository = Depends(get_playlist_repo),
@@ -295,7 +338,6 @@ def get_playlist_service(
         activity_repo: ActivityRepository = Depends(get_activity_repo),
         streak_repo: StreakRepository = Depends(get_streak_repo),
         activity_service: ActivityService = Depends(get_activity_service),
-        quiz_repo: QuizRepository = Depends(get_quiz_repo)
     ):
     return PlaylistService(
         playlist_repo,
@@ -305,8 +347,8 @@ def get_playlist_service(
         user_repo,
         activity_repo,
         streak_repo,
-        activity_service,
-        quiz_repo
+        activity_service
     )
+
 
 PlaylistServiceDep = Annotated[PlaylistService, Depends(get_playlist_service)]

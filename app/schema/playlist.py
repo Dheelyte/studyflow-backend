@@ -57,6 +57,7 @@ class ModuleRead(BaseModel):
     description: str
     topics_covered: list[str]
     order: int
+    quiz_completed: bool = False
     lessons: List[LessonRead] = []
     
     model_config = ConfigDict(from_attributes=True)

@@ -16,14 +16,17 @@ class Question(BaseModel):
     options: List[Option]
     correctOptionId: str
 
+class QuizSubmission(BaseModel):
+    # Map question_id (int) to selected_option_id (str)
+    answers: dict[int, str]
+    questions: List[Question] # Stateless verification: client sends back the questions
+
+
 class QuizBase(BaseModel):
     questions: List[Question]
 
 class QuizCreate(QuizBase):
     module_id: int
 
-class QuizResponse(QuizBase):
-    id: int
-    module_id: int
-
-    model_config = ConfigDict(from_attributes=True)
+class QuizSubmissionResponse(BaseModel):
+    passed: bool

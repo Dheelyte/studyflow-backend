@@ -172,16 +172,31 @@ class PlaylistRepository:
         progress_result = await self.session.execute(progress_stmt)
         completed_resource_ids: Set[int] = set(progress_result.scalars().all())
 
-        # 3. Attach progress to resources (in memory)
+        # 3. Fetch User's Module Progress (for quiz_completed)
+        module_progress_stmt = (
+             select(UserModuleProgress.module_id)
+             .join(Module)
+             .where(
+                 Module.playlist_id == playlist_id,
+                 UserModuleProgress.user_id == user_id,
+                 UserModuleProgress.quiz_completed == True
+             )
+        )
+        module_progress_result = await self.session.execute(module_progress_stmt)
+        quiz_completed_module_ids: Set[int] = set(module_progress_result.scalars().all())
+
+        # 4. Attach progress to resources and modules (in memory)
         # We perform a traversal to set the is_completed flag
         # Pydantic schema will pick this up if the attribute exists
         for module in playlist.modules:
+            setattr(module, 'quiz_completed', module.id in quiz_completed_module_ids)
             for lesson in module.lessons:
                 for resource in lesson.resources:
                     # Dynamically set attribute - SQLAlchemy models are Python objects
                     setattr(resource, 'is_completed', resource.id in completed_resource_ids)
         
         return playlist
+
 
 
 class ModuleRepository:
@@ -244,6 +259,29 @@ class ModuleRepository:
             user_id=user_id,
             module_id=module_id,
             is_completed=True
+        )
+        self.session.add(new_progress)
+        await self.session.flush()
+        return new_progress
+
+    async def mark_module_quiz_completed(self, module_id: int, user_id: UUID) -> UserModuleProgress:
+        stmt = select(UserModuleProgress).where(
+            UserModuleProgress.user_id == user_id,
+            UserModuleProgress.module_id == module_id
+        )
+        result = await self.session.execute(stmt)
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            if not existing.quiz_completed:
+                existing.quiz_completed = True
+                await self.session.flush()
+            return existing
+            
+        new_progress = UserModuleProgress(
+            user_id=user_id,
+            module_id=module_id,
+            quiz_completed=True
         )
         self.session.add(new_progress)
         await self.session.flush()

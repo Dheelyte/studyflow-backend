@@ -69,24 +69,24 @@ async def generate_quiz_response(
     experience_level: str,
     topics_covered: list[str],
 ):
-    if USE_MOCK_DATA:
-        return load_mock_quiz()
+    # if USE_MOCK_DATA:
+    #     return load_mock_quiz()
     
-    # chain = create_generate_quiz_chain()
-    # try:
-    #     result = chain.invoke({
-    #         "curriculum_title": curriculum_title,
-    #         "experience_level": experience_level,
-    #         "topics_covered": topics_covered,
-    #         "num_questions": settings.QUIZ_NUM_QUESTIONS,
-    #     })
-    #     print(result)
-    #     return result
-    # except Exception as e:
-    #     print(f"Quiz error: {e}")
-    #     return QuizBase(
-    #         questions=[]
-    #     )
+    chain = create_generate_quiz_chain()
+    try:
+        result = chain.invoke({
+            "curriculum_title": curriculum_title,
+            "experience_level": experience_level,
+            "topics_covered": topics_covered,
+            "num_questions": settings.QUIZ_NUM_QUESTIONS,
+        })
+        print(result)
+        return result
+    except Exception as e:
+        print(f"Quiz error: {e}")
+        return QuizBase(
+            questions=[]
+        )
 
 def load_mock_quiz() -> QuizBase:
     """

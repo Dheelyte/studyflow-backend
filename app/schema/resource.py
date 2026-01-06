@@ -6,7 +6,7 @@ class Resource(BaseModel):
     type: str = Field(..., description="Type of resource: Video, Article, etc.")
     label: str = Field(..., description="Display title for the resource")
     description: str
-    resource_url: str = Field(..., description="An up-to-date and valid URL to one of the best live version of this resource, not a google search link. Make sure the URL doesn't lead to a resource that does not exist anymore")
+    resource_url: str = Field(..., description="An up-to-date and valid URL to one of the most relevant live version of this resource, not a google search link, or a link to a paid course (e.g. Coursera, Udemy). Make sure the URL doesn't lead to a resource that does not exist anymore")
 
 class Lesson(BaseModel):
     lesson_title: str

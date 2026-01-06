@@ -47,6 +47,7 @@ class UserModuleProgress(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
     module_id: Mapped[int] = mapped_column(ForeignKey('modules.id'))
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    quiz_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     
     __table_args__ = (
         UniqueConstraint('user_id', 'module_id', name='unique_user_module_progress'),
