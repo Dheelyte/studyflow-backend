@@ -33,7 +33,7 @@ jobs:
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: privacure-dev
+    environment: studywise
 
     steps:
       - name: Checkout repo
