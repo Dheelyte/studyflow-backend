@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     VALIDATE_CERTS: bool = Field(default=True)
 
     # --- LLM Settings (Required) ---
-    GEMINI_MODEL: str = Field(...)
+    GEMINI_MODEL: str = Field(default="")
     GOOGLE_API_KEY: str = Field(...)
     TEMPERATURE: float = Field(default=0.7, ge=0.0, le=2.0)
     MAX_OUTPUT_TOKENS: int = Field(default=2048, gt=0)
