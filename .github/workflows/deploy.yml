@@ -33,7 +33,7 @@ jobs:
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: studywise
+    environment: studyflow
 
     steps:
       - name: Checkout repo
