@@ -13,7 +13,7 @@ class Post(Base):
     content: Mapped[str] = mapped_column(Text)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     community_id: Mapped[int] = mapped_column(ForeignKey("communities.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="posts")

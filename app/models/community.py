@@ -23,7 +23,7 @@ class Community(Base):
     name: Mapped[str] = mapped_column(String, unique=True, index=True)
     description: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     # Relationships
     posts = relationship("Post", back_populates="community", cascade="all, delete-orphan")
     members = relationship("User", secondary=community_members, back_populates="communities")

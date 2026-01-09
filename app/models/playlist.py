@@ -24,6 +24,6 @@ class Playlist(Base):
     objectives: Mapped[list[str]] = mapped_column(JSON)
     # content: Mapped[dict] = mapped_column(JSON, nullable=True)
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     modules = relationship("Module", back_populates="playlist", cascade="all, delete-orphan")
