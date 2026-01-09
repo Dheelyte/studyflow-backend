@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Text, func
 
 from .base import Base
 
@@ -13,7 +13,7 @@ class Post(Base):
     content: Mapped[str] = mapped_column(Text)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     community_id: Mapped[int] = mapped_column(ForeignKey("communities.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
     user = relationship("User", back_populates="posts")
