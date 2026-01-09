@@ -1,3 +1,4 @@
+import uuid
 from contextvars import ContextVar
 from typing import Optional
 
@@ -6,7 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from ..config import settings
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False, future=True)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    connect_args={
+        "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    },
+    echo=False,
+    future=True,
+)
+
 async_session_factory = async_sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession
 )
