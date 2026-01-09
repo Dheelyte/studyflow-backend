@@ -2,6 +2,7 @@ import uuid
 from contextvars import ContextVar
 from typing import Optional
 
+from sqlalchemy.pool import NullPool
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -9,13 +10,12 @@ from ..config import settings
 
 engine = create_async_engine(
     settings.DATABASE_URL,
+    poolclass=NullPool,
     connect_args={
         "prepared_statement_name_func": lambda: f"__asyncpg_{uuid.uuid4()}__",
         "statement_cache_size": 0,
         "prepared_statement_cache_size": 0,
     },
-    echo=False,
-    future=True,
 )
 
 async_session_factory = async_sessionmaker(
