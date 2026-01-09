@@ -10,7 +10,7 @@ router = APIRouter(
     prefix="/communities", tags=["communities"], dependencies=[Depends(db_session)]
 )
 
-@router.post("/", response_model=CommunityResponse)
+@router.post("", response_model=CommunityResponse)
 async def create_community(
     community: CommunityCreate, 
     community_service: CommunityServiceDep,
