@@ -19,7 +19,7 @@ async def create_community(
     return await community_service.create_community(community, auth_user.id)
 
 
-@router.get("/", response_model=List[CommunityResponse])
+@router.get("", response_model=List[CommunityResponse])
 async def list_communities(
     community_service: CommunityServiceDep,
     skip: int = 0, 
