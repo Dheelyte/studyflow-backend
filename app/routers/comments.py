@@ -9,7 +9,7 @@ from ..services.comment import CommentServiceDep
 
 router = APIRouter(prefix="/comments", tags=["comments"], dependencies=[Depends(db_session)])
 
-@router.post("/", response_model=CommentResponse, status_code=201)
+@router.post("", response_model=CommentResponse, status_code=201)
 async def create_comment(
     comment: CommentCreate, 
     auth_user: AuthUserDep,
