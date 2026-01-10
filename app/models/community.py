@@ -13,7 +13,7 @@ community_members = Table(
     Base.metadata,
     Column("user_id", UUID, ForeignKey("users.id"), primary_key=True),
     Column("community_id", Integer, ForeignKey("communities.id"), primary_key=True),
-    Column("joined_at", DateTime, default=lambda: datetime.now(timezone.utc))
+    Column("joined_at", DateTime(timezone=True), server_default=func.now(), nullable=False)
 )
 
 
