@@ -1,8 +1,8 @@
 """Add models
 
-Revision ID: b9b05bfdfb4e
+Revision ID: 2794b377520f
 Revises: 
-Create Date: 2026-01-10 00:57:40.043827
+Create Date: 2026-01-10 16:18:07.254023
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b9b05bfdfb4e'
+revision: str = '2794b377520f'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -86,7 +86,7 @@ def upgrade() -> None:
     op.create_table('community_members',
     sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('community_id', sa.Integer(), nullable=False),
-    sa.Column('joined_at', sa.DateTime(), nullable=True),
+    sa.Column('joined_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['community_id'], ['communities.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('user_id', 'community_id')
