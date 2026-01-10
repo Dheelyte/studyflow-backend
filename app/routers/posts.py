@@ -8,7 +8,7 @@ from ..services.post import PostServiceDep
 
 router = APIRouter(prefix="/posts", tags=["posts"], dependencies=[Depends(db_session)])
 
-@router.post("/", response_model=PostResponse, status_code=201)
+@router.post("", response_model=PostResponse, status_code=201)
 async def create_post(
     post: PostCreate, 
     auth_user: AuthUserDep,
