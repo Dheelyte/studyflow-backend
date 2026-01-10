@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from typing import List
 
-from ..dependencies.auth import AuthUserDep
+from ..dependencies.auth import AuthUserDep, OptionalAuthUserDep
 from ..db.session import db_session
 from ..schema.post import PostCreate, PostResponse, PostUpdate
 from ..services.post import PostServiceDep
@@ -29,12 +29,14 @@ async def get_user_feed(
 
 @router.get("/{community_id}/posts", response_model=List[PostResponse])
 async def list_community_posts(
-    community_id: int, 
+    community_id: int,
+    auth_user: OptionalAuthUserDep,
     post_service: PostServiceDep,
     skip: int = 0, 
     limit: int = 10
 ):
-    return await post_service.list_community_posts(community_id, skip, limit)
+    user_id = auth_user.id if auth_user else None
+    return await post_service.list_community_posts(community_id, skip, limit, user_id)
 
 
 @router.get("/explore", response_model=List[PostResponse])
