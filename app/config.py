@@ -64,8 +64,8 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH2_CLIENT_SECRET: str = Field(...)
     
     # --- Github Auth Settings ---
-    GITHUB_CLIENT_ID: str = Field(...)
-    GITHUB_CLIENT_SECRET: str = Field(...)
+    SOCIAL_GITHUB_CLIENT_ID: str = Field(...)
+    SOCIAL_GITHUB_CLIENT_SECRET: str = Field(...)
     
     # --- Apple Auth Settings ---
     APPLE_CLIENT_ID: str = Field(...)
