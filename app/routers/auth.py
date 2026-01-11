@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, Response, status, HTTPException
@@ -21,6 +22,7 @@ from ..services.auth import (
 from ..services.user import UserServiceDep
 from ..services.google_auth import GoogleRawLoginFlowServiceDep, GoogleUserServiceDep
 from ..services.github_auth import GithubRawLoginFlowServiceDep, GithubUserServiceDep
+from ..services.apple_auth import AppleRawLoginFlowServiceDep, AppleUserServiceDep
 from ..config import settings
 from ..services.auth import AuthTokenServiceDep
 
@@ -405,6 +407,112 @@ async def callback_github(
     # Redirect with success flag
     redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
     response = RedirectResponse(url=redirect_url)
+    
+    # Set secure cookies
+    auth_token_service.set_auth_cookies(response, access_token, refresh_token)
+    
+    # Cleanup state cookie
+    response.delete_cookie("oauth_state")
+    
+    return response
+
+
+@router.get("/login/apple")
+async def login_apple(
+    apple_service: AppleRawLoginFlowServiceDep
+):
+    """Initiates the Apple Sign In flow."""
+    auth_url, state = apple_service.get_authorization_url()
+    
+    response = RedirectResponse(url=auth_url)
+    
+    # Store state in cookie for CSRF protection
+    response.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE, # Apple POST callback needs "lax" or "none" in some cases, checking config
+        max_age=300
+    )
+    
+    return response
+
+@router.post("/callback/apple")
+async def callback_apple(
+    request: Request,
+    response: Response,
+    apple_service: AppleRawLoginFlowServiceDep,
+    apple_user_service: AppleUserServiceDep,
+    auth_token_service: AuthTokenServiceDep,
+):
+    """
+    Apple Identity Provider Callback.
+    Apple sends 'code', 'state' and optionally 'user' as form fields in a POST request.
+    """
+    
+    form_data = await request.form()
+    code = form_data.get("code")
+    state = form_data.get("state")
+    user_json = form_data.get("user") # Only present on first login
+    error = form_data.get("error")
+
+    # 1. Handle User Cancellation / Errors
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Apple permission denied: {error}"
+        )
+
+    # 2. Verify State (CSRF Protection)
+    cookie_state = request.cookies.get("oauth_state")
+    if not state or not cookie_state or state != cookie_state:
+        # Note: In a real Form Post, we can't easily query cookies if samesite is strict.
+        # Ensure samesite='lax' or 'none' for this to work.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="State mismatch. Potential CSRF attack."
+        )
+
+    if not code:
+        raise HTTPException(status_code=400, detail="No code received from Apple")
+
+    # 3. Exchange code for tokens
+    try:
+        apple_tokens = await apple_service.get_tokens(code=code)
+    except Exception as e:
+        # Log error
+        raise HTTPException(status_code=400, detail="Failed to authenticate with Apple.")
+
+    # 4. Verify ID Token & Get User Info
+    # Apple ID token contains email
+    claims = apple_service.verify_id_token(apple_tokens.id_token)
+    email = claims.get("email")
+    
+    if not email:
+         raise HTTPException(status_code=400, detail="Email not found in Apple ID Token")
+
+    # 5. Get/Create User
+    # Parse user_json if available (first login only)
+    user_name_data = None
+    if user_json:
+        try:
+            user_name_data = json.loads(user_json)
+        except:
+            pass
+            
+    user = await apple_user_service.get_or_create_apple_user(email, user_name_data)
+
+    # 6. Issue Tokens & Redirect
+    access_token = auth_token_service.create_access_token(data={"sub": user.email})
+    refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
+    
+    # Redirect with success flag
+    redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
+    
+    # Since this is a POST request from Apple, we must return a 302 Found or 303 See Other
+    # to redirect the user's browser to our frontend.
+    response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
     
     # Set secure cookies
     auth_token_service.set_auth_cookies(response, access_token, refresh_token)

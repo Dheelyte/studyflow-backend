@@ -65,6 +65,12 @@ class Settings(BaseSettings):
     # --- Github Auth Settings ---
     GITHUB_CLIENT_ID: str = Field(...)
     GITHUB_CLIENT_SECRET: str = Field(...)
+    
+    # --- Apple Auth Settings ---
+    APPLE_CLIENT_ID: str = Field(...)
+    APPLE_TEAM_ID: str = Field(...)
+    APPLE_KEY_ID: str = Field(...)
+    APPLE_PRIVATE_KEY: str = Field(...)
 
     # --- Quiz Settings ---
     QUIZ_NUM_QUESTIONS: int = Field(default=10, gt=0)
