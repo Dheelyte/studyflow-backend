@@ -20,6 +20,7 @@ from ..services.auth import (
 )
 from ..services.user import UserServiceDep
 from ..services.google_auth import GoogleRawLoginFlowServiceDep, GoogleUserServiceDep
+from ..services.github_auth import GithubRawLoginFlowServiceDep, GithubUserServiceDep
 from ..config import settings
 from ..services.auth import AuthTokenServiceDep
 
@@ -323,6 +324,85 @@ async def callback_google(
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
     
     # Determine redirect URL (could be dynamic based on user role)
+    redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
+    response = RedirectResponse(url=redirect_url)
+    
+    # Set secure cookies
+    auth_token_service.set_auth_cookies(response, access_token, refresh_token)
+    
+    # Cleanup state cookie
+    response.delete_cookie("oauth_state")
+    
+    return response
+
+
+@router.get("/login/github")
+async def login_github(
+    github_service: GithubRawLoginFlowServiceDep
+):
+    """Initiates the Github OAuth flow."""
+    auth_url, state = github_service.get_authorization_url()
+    
+    response = RedirectResponse(url=auth_url)
+    
+    # Store state in cookie for CSRF protection
+    response.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=300
+    )
+    
+    return response
+
+@router.get("/callback/github")
+async def callback_github(
+    request: Request,
+    github_service: GithubRawLoginFlowServiceDep,
+    github_user_service: GithubUserServiceDep,
+    auth_token_service: AuthTokenServiceDep,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    # 1. Handle User Cancellation
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Github permission denied: {error}"
+        )
+
+    # 2. Verify State (CSRF Protection)
+    cookie_state = request.cookies.get("oauth_state")
+    if not state or not cookie_state or state != cookie_state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="State mismatch. Potential CSRF attack."
+        )
+
+    if not code:
+        raise HTTPException(status_code=400, detail="No code received from Github")
+
+    # 3. Exchange code for tokens
+    try:
+        github_tokens = await github_service.get_tokens(code=code)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Failed to authenticate with Github.")
+
+    # 4. Get User Info
+    user_info = await github_service.get_user_info(github_tokens)
+    email = user_info.get("email")
+    
+    # 5. Get/Create User
+    user = await github_user_service.get_or_create_github_user(email, user_info)
+
+    # 6. Issue Tokens & Redirect
+    access_token = auth_token_service.create_access_token(data={"sub": user.email})
+    refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
+    
+    # Redirect with success flag
     redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
     response = RedirectResponse(url=redirect_url)
     

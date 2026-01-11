@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     # --- Google Auth Settings ---
     GOOGLE_OAUTH2_CLIENT_ID: str = Field(...)
     GOOGLE_OAUTH2_CLIENT_SECRET: str = Field(...)
+    
+    # --- Github Auth Settings ---
+    GITHUB_CLIENT_ID: str = Field(...)
+    GITHUB_CLIENT_SECRET: str = Field(...)
 
     # --- Quiz Settings ---
     QUIZ_NUM_QUESTIONS: int = Field(default=10, gt=0)
