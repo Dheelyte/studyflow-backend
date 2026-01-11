@@ -45,11 +45,12 @@ class Settings(BaseSettings):
     MAIL_PASSWORD: str = Field(default="test")
     MAIL_FROM: str = Field(default="test@email.com")
     MAIL_PORT: int = Field(default=587)
-    MAIL_SERVER: str = Field(default="test")
+    MAIL_SERVER: str = Field(default="dev")
     MAIL_STARTTLS: bool = Field(default=False)
     MAIL_SSL_TLS: bool = Field(default=True)
     USE_CREDENTIALS: bool = Field(default=True)
     VALIDATE_CERTS: bool = Field(default=True)
+    TEMPLATE_FOLDER: str = Field(default="app/templates")
 
     # --- LLM Settings (Required) ---
     GEMINI_MODEL: str = Field(default="")
@@ -76,9 +77,10 @@ class Settings(BaseSettings):
     QUIZ_NUM_QUESTIONS: int = Field(default=10, gt=0)
 
     # --- Constants ---
-    API_V1_STR: str = "/api/v1"
-    FRONTEND_URL: str = "http://127.0.0.1:3000"
-    BACKEND_URL: str = "http://127.0.0.1:8000/api/v1"
+    API_V1_STR: str = Field(default="/api/v1")
+    FRONTEND_URL: str = Field(default="http://127.0.0.1:3000")
+    FRONTEND_DASHBOARD_URL: str = Field(default="http://127.0.0.1:3000/dashboard")
+    BACKEND_URL: str = Field(default="http://127.0.0.1:8000/api/v1")
 
     model_config = SettingsConfigDict(
         env_file=".env", 

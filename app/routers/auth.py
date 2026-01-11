@@ -25,6 +25,7 @@ from ..services.github_auth import GithubRawLoginFlowServiceDep, GithubUserServi
 from ..services.apple_auth import AppleRawLoginFlowServiceDep, AppleUserServiceDep
 from ..config import settings
 from ..services.auth import AuthTokenServiceDep
+from ..services.email import EmailService
 
 router = APIRouter(
     prefix="/auth", tags=["Authentication"], dependencies=[Depends(db_session)]
@@ -68,6 +69,8 @@ async def register(
     refresh_token = token_service.create_refresh_token(data={"sub": user.email})
     
     token_service.set_auth_cookies(response, access_token, refresh_token)
+
+    await EmailService.send_welcome_email(user)
 
     return MsgResponse(message="Registration successful")
 
@@ -320,7 +323,7 @@ async def callback_google(
     
     # 5. Get/Create User (Scalable: logic is delegated to service)
     user = await google_user_service.get_or_create_google_user(email, user_info)
-
+    
     # 6. Issue Tokens & Redirect
     access_token = auth_token_service.create_access_token(data={"sub": user.email})
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})

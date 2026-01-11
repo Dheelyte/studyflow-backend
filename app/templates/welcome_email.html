@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Studywise</title>
+    <style>
+        /* Modern Reset */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+
+        table {
+            border-spacing: 0;
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+
+        img {
+            border: 0;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Layout */
+        .email-wrapper {
+            width: 100%;
+            background-color: #f4f7f9;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        .email-content {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Components */
+        .button {
+            background-color: #007bff;
+            color: #ffffff !important;
+            padding: 16px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        @media screen and (max-width: 600px) {
+            .content-padding {
+                padding: 20px !important;
+            }
+
+            .email-content {
+                margin-top: 0;
+                margin-bottom: 0;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-wrapper">
+        <div class="email-content">
+
+            <div style="padding: 30px 20px; text-align: center; background-color: #1a1a1a;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: -0.5px;">Studywise</h1>
+            </div>
+
+            <div class="content-padding" style="padding: 40px;">
+
+                <p style="font-size: 16px; line-height: 1.6; color: #4b5563;">
+                    <strong>Hi {{name}},</strong><br><br>
+                    Welcome to Studywise! Most people spend more time searching for what to learn than actually
+                    learning. We built this to change that.
+                </p>
+
+                <h2 style="font-size: 24px; color: #1a1a1a; margin-top: 0;">Here's how it works:</h2>
+
+                <div
+                    style="margin: 32px 0; background-color: #f8fafc; border-radius: 12px; padding: 24px; border: 1px solid #e2e8f0;">
+                    <div style="margin-bottom: 12px;"><strong>1.</strong> Tell us what you want to learn.</div>
+                    <div style="margin-bottom: 12px;"><strong>2.</strong> We find the best resources for your level.
+                    </div>
+                    <div style="margin-bottom: 0;"><strong>3.</strong> Follow your clear, step-by-step roadmap.</div>
+                </div>
+
+                <div style="margin: 32px 0; border-left: 4px solid #007bff; padding-left: 20px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #1a1a1a;">Learn better, together</h3>
+                    <p style="font-size: 15px; line-height: 1.5; color: #4b5563; margin: 0;">
+                        Don't study in isolation. Join learners in communities, or create your own,
+                        to share notes, ask questions, and stay on track.
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin: 40px 0;">
+                    <a href="{{dashboard_url}}" class="button">Create Your First Roadmap</a>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 40px 0;">
+            </div>
+
+            <div
+                style="padding: 32px 20px; text-align: center; background-color: #f9fafb; font-size: 12px; color: #9ca3af;">
+                <p style="margin: 0 0 8px 0;">© 2026 Studywise</p>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
