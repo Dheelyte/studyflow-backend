@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, Request, Response, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Request, Response, status, HTTPException
+from fastapi.responses import RedirectResponse
 
 from ..db.session import db_session
 from ..schema.auth import (
@@ -16,6 +19,9 @@ from ..services.auth import (
     PasswordResetServiceDep,
 )
 from ..services.user import UserServiceDep
+from ..services.google_auth import GoogleRawLoginFlowServiceDep, GoogleUserServiceDep
+from ..config import settings
+from ..services.auth import AuthTokenServiceDep
 
 router = APIRouter(
     prefix="/auth", tags=["Authentication"], dependencies=[Depends(db_session)]
@@ -247,3 +253,83 @@ async def logout(response: Response, token_Service: AuthTokenServiceDep):
     token_Service.clear_auth_cookies(response)
 
     return MsgResponse(message="Logged out")
+
+
+@router.get("/login/google")
+async def login_google(
+    google_service: GoogleRawLoginFlowServiceDep
+):
+    """Initiates the Google OAuth flow."""
+    auth_url, state = google_service.get_authorization_url()
+    
+    response = RedirectResponse(url=auth_url)
+    
+    # SECURITY FIX: Store state in an HTTPOnly cookie to verify later
+    response.set_cookie(
+        key="oauth_state",
+        value=state,
+        httponly=True,
+        secure=settings.COOKIE_SECURE, # Set to False if localhost is HTTP
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=300 # 5 minutes expiration is enough
+    )
+    
+    return response
+
+@router.get("/callback/google")
+async def callback_google(
+    request: Request,
+    google_service: GoogleRawLoginFlowServiceDep,
+    google_user_service: GoogleUserServiceDep,
+    auth_token_service: AuthTokenServiceDep,
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    # 1. Handle User Cancellation
+    if error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Google permission denied: {error}"
+        )
+
+    # 2. SECURITY FIX: Verify State (CSRF Protection)
+    cookie_state = request.cookies.get("oauth_state")
+    if not state or not cookie_state or state != cookie_state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="State mismatch. Potential CSRF attack."
+        )
+
+    if not code:
+        raise HTTPException(status_code=400, detail="No code received from Google")
+
+    # 3. Exchange code for tokens
+    try:
+        google_tokens = await google_service.get_tokens(code=code)
+    except Exception as e:
+        # Log the actual error internally here
+        raise HTTPException(status_code=400, detail="Failed to authenticate with Google.")
+
+    # 4. Get User Info & Database Logic
+    user_info = await google_service.get_user_info(google_tokens)
+    email = user_info.get("email")
+    
+    # 5. Get/Create User (Scalable: logic is delegated to service)
+    user = await google_user_service.get_or_create_google_user(email, user_info)
+
+    # 6. Issue Tokens & Redirect
+    access_token = auth_token_service.create_access_token(data={"sub": user.email})
+    refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
+    
+    # Determine redirect URL (could be dynamic based on user role)
+    redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
+    response = RedirectResponse(url=redirect_url)
+    
+    # Set secure cookies
+    auth_token_service.set_auth_cookies(response, access_token, refresh_token)
+    
+    # Cleanup state cookie
+    response.delete_cookie("oauth_state")
+    
+    return response

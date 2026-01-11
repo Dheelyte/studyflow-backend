@@ -5,9 +5,9 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from ..config import settings, load_google_llm
 from ..schema.quiz import QuizBase
+from ..config import settings
 
-
-USE_MOCK_DATA = True
+USE_MOCK_DATA = settings.USE_MOCK_DATA
 
 
 def create_generate_quiz_chain():
@@ -69,8 +69,8 @@ async def generate_quiz_response(
     experience_level: str,
     topics_covered: list[str],
 ):
-    # if USE_MOCK_DATA:
-    #     return load_mock_quiz()
+    if USE_MOCK_DATA:
+        return load_mock_quiz()
     
     chain = create_generate_quiz_chain()
     try:

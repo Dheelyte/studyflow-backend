@@ -5,9 +5,9 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from ..config import load_google_llm
 from ..schema.resource import Resource, Curriculum
+from ..config import settings
 
-
-USE_MOCK_DATA = True
+USE_MOCK_DATA = settings.USE_MOCK_DATA
 
 
 def create_generate_curriculum_chain():
@@ -33,7 +33,7 @@ def create_generate_curriculum_chain():
     - Must be a concise 'Short-Form' title (max 4 words).
     - PROHIBITED: Do not include subtitles, colons, or catchphrases.
     - GOOD: "React.js", "Python Programming", "Data Analysis"
-    - BAD: "React Foundations: A Complete Guide to Hooks", "Python Programming: A Complete Guide to Hooks"
+    - BAD: "React Foundations", "Python Programming: A Complete Guide to Hooks"
 
     ### Output Schema
     The JSON must follow this structure:
@@ -54,8 +54,8 @@ def create_generate_curriculum_chain():
 
 
 async def generate_curriculum_response(topic: str, experience_level: str, duration: str):
-    # if USE_MOCK_DATA:
-    #     return load_mock_curriculum()
+    if USE_MOCK_DATA:
+        return load_mock_curriculum()
     
     chain = create_generate_curriculum_chain()
     try:

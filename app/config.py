@@ -56,13 +56,19 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = Field(...)
     TEMPERATURE: float = Field(default=0.7, ge=0.0, le=2.0)
     MAX_OUTPUT_TOKENS: int = Field(default=2048, gt=0)
+    USE_MOCK_DATA: bool = Field(...)
+
+    # --- Google Auth Settings ---
+    GOOGLE_OAUTH2_CLIENT_ID: str = Field(...)
+    GOOGLE_OAUTH2_CLIENT_SECRET: str = Field(...)
 
     # --- Quiz Settings ---
     QUIZ_NUM_QUESTIONS: int = Field(default=10, gt=0)
 
     # --- Constants ---
     API_V1_STR: str = "/api/v1"
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "http://127.0.0.1:3000"
+    BACKEND_URL: str = "http://127.0.0.1:8000/api/v1"
 
     model_config = SettingsConfigDict(
         env_file=".env", 
