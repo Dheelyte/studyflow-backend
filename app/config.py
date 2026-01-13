@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     # --- Constants ---
     API_V1_STR: str = Field(default="/api/v1")
     FRONTEND_URL: str = Field(default="http://127.0.0.1:3000")
-    FRONTEND_DASHBOARD_URL: str = Field(default="http://127.0.0.1:3000/dashboard")
+    FRONTEND_REDIRECT_URL: str = Field(default="http://127.0.0.1:3000/login")
     BACKEND_URL: str = Field(default="http://127.0.0.1:8000/api/v1")
 
     model_config = SettingsConfigDict(

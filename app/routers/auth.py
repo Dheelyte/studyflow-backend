@@ -329,7 +329,7 @@ async def callback_google(
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
     
     # Determine redirect URL (could be dynamic based on user role)
-    redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}/?login_success=true"
     response = RedirectResponse(url=redirect_url)
     
     # Set secure cookies
