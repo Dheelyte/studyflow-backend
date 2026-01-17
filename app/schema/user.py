@@ -32,7 +32,7 @@ class UserCreate(UserBase):
 from enum import Enum
 
 class LevelTitle(str, Enum):
-    NOVICE = "Novice Explorer"
+    NOVICE = "Explorer"
     LEARNER = "Dedicated Learner"
     SEEKER = "Knowledge Seeker"
     SCHOLAR = "Scholar"
