@@ -1,4 +1,5 @@
 import httpx
+from uuid import uuid4
 from attrs import define
 from fastapi import HTTPException, Depends
 from urllib.parse import urlencode
@@ -43,7 +44,7 @@ class GithubUserService:
             email=email,
             first_name=first_name,
             last_name=last_name,
-            password_hash="",  # No password for OAuth users
+            password_hash=uuid4().hex,
             is_active=True,
         )
         await self.user_repo.add(new_user)

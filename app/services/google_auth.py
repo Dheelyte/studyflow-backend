@@ -1,5 +1,6 @@
 import httpx
 import jwt
+from uuid import uuid4
 
 from attrs import define, field
 from fastapi import HTTPException, Depends
@@ -43,9 +44,8 @@ class GoogleUserService:
             email=email,
             first_name=user_info.get("given_name", ""),
             last_name=user_info.get("family_name", ""),
-            password_hash="",
+            password_hash=uuid4().hex,
             is_active=True,
-            # Handle password logic here (e.g., set hash to un-guessable string)
         )
         await self.user_repo.add(new_user)
         return new_user
