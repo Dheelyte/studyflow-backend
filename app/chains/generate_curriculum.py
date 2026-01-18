@@ -59,7 +59,7 @@ async def generate_curriculum_response(topic: str, experience_level: str, durati
     
     chain = create_generate_curriculum_chain()
     try:
-        result = chain.invoke({
+        result = chain.ainvoke({
             "topic": topic,
             "experience_level": experience_level,
             "duration": duration,
