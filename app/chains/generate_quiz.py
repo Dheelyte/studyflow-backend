@@ -74,7 +74,7 @@ async def generate_quiz_response(
     
     chain = create_generate_quiz_chain()
     try:
-        result = chain.ainvoke({
+        result = await chain.ainvoke({
             "curriculum_title": curriculum_title,
             "experience_level": experience_level,
             "topics_covered": topics_covered,
