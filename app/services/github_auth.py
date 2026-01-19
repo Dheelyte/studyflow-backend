@@ -58,8 +58,8 @@ class GithubRawLoginFlowService:
     GITHUB_USER_EMAILS_URL = "https://api.github.com/user/emails"
     
     def __init__(self):
-        self.client_id = settings.GITHUB_CLIENT_ID
-        self.client_secret = settings.GITHUB_CLIENT_SECRET
+        self.client_id = settings.SOCIAL_GITHUB_CLIENT_ID
+        self.client_secret = settings.SOCIAL_GITHUB_CLIENT_SECRET
         self.redirect_uri = f"{settings.BACKEND_URL}/auth/callback/github" 
 
     @staticmethod
