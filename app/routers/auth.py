@@ -277,7 +277,8 @@ async def login_google(
         httponly=True,
         secure=settings.COOKIE_SECURE, # Set to False if localhost is HTTP
         samesite=settings.COOKIE_SAMESITE,
-        max_age=300 # 5 minutes expiration is enough
+        max_age=300, # 5 minutes expiration is enough
+        path="/"
     )
     
     return response
@@ -301,6 +302,11 @@ async def callback_google(
 
     # 2. SECURITY FIX: Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
+    
+    # DEBUG LOGGING
+    print(f"DEBUG: Google Callback - State Param: {state}, Cookie State: {cookie_state}")
+    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
+
     if not state or not cookie_state or state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
@@ -357,7 +363,8 @@ async def login_github(
         httponly=True,
         secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE,
-        max_age=300
+        max_age=300,
+        path="/"
     )
     
     return response
@@ -381,6 +388,11 @@ async def callback_github(
 
     # 2. Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
+    
+    # DEBUG LOGGING
+    print(f"DEBUG: Github Callback - State Param: {state}, Cookie State: {cookie_state}")
+    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
+
     if not state or not cookie_state or state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
@@ -436,7 +448,8 @@ async def login_apple(
         httponly=True,
         secure=settings.COOKIE_SECURE,
         samesite=settings.COOKIE_SAMESITE, # Apple POST callback needs "lax" or "none" in some cases, checking config
-        max_age=300
+        max_age=300,
+        path="/"
     )
     
     return response
@@ -469,6 +482,11 @@ async def callback_apple(
 
     # 2. Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
+    
+    # DEBUG LOGGING
+    print(f"DEBUG: Apple Callback - State Param: {state}, Cookie State: {cookie_state}")
+    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
+
     if not state or not cookie_state or state != cookie_state:
         # Note: In a real Form Post, we can't easily query cookies if samesite is strict.
         # Ensure samesite='lax' or 'none' for this to work.
