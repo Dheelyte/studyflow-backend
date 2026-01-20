@@ -269,6 +269,11 @@ async def login_google(
     auth_url, state = google_service.get_authorization_url()
     
     response = RedirectResponse(url=auth_url)
+
+    # Prevent caching
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     
     # SECURITY FIX: Store state in an HTTPOnly cookie to verify later
     response.set_cookie(
@@ -360,6 +365,11 @@ async def login_github(
     auth_url, state = github_service.get_authorization_url()
     
     response = RedirectResponse(url=auth_url)
+
+    # Prevent caching
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     
     # Store state in cookie for CSRF protection
     response.set_cookie(
