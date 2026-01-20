@@ -275,10 +275,11 @@ async def login_google(
         key="oauth_state",
         value=state,
         httponly=True,
-        secure=settings.COOKIE_SECURE, # Set to False if localhost is HTTP
-        samesite=settings.COOKIE_SAMESITE,
+        secure=settings.COOKIE_SECURE, # OAuth state cookie must be Secure for SameSite=None
+        samesite=settings.COOKIE_SAMESITE, # Allow cross-site usage for the callback handshake
         max_age=300, # 5 minutes expiration is enough
-        path="/"
+        path="/",
+        domain=settings.COOKIE_DOMAIN,
     )
     
     return response
@@ -300,9 +301,20 @@ async def callback_google(
             detail=f"Google permission denied: {error}"
         )
 
-    # 2. SECURITY FIX: Verify State (CSRF Protection)
+    # 3. SECURITY FIX: Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
-    if not state or not cookie_state or state != cookie_state:
+    if not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing state parameter in callback."
+        )
+    if not cookie_state:
+        # This is the most common error: cookie lost due to cross-domain or http/https mismatch
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
+        )
+    if state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="State mismatch. Potential CSRF attack."
@@ -360,10 +372,11 @@ async def login_github(
         key="oauth_state",
         value=state,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
+        secure=settings.COOKIE_SECURE, 
         samesite=settings.COOKIE_SAMESITE,
         max_age=300,
-        path="/"
+        path="/",
+        domain=settings.COOKIE_DOMAIN,
     )
     
     return response
@@ -392,7 +405,17 @@ async def callback_github(
     print(f"DEBUG: Github Callback - State Param: {state}, Cookie State: {cookie_state}")
     print(f"DEBUG: All Cookies: {request.cookies.keys()}")
 
-    if not state or not cookie_state or state != cookie_state:
+    if not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing state parameter in callback."
+        )
+    if not cookie_state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
+        )
+    if state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="State mismatch. Potential CSRF attack."
@@ -449,10 +472,11 @@ async def login_apple(
         key="oauth_state",
         value=state,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite=settings.COOKIE_SAMESITE, # Apple POST callback needs "lax" or "none" in some cases, checking config
+        secure=True,
+        samesite="none",
         max_age=300,
-        path="/"
+        path="/",
+        domain=settings.COOKIE_DOMAIN,
     )
     
     return response
@@ -490,9 +514,19 @@ async def callback_apple(
     print(f"DEBUG: Apple Callback - State Param: {state}, Cookie State: {cookie_state}")
     print(f"DEBUG: All Cookies: {request.cookies.keys()}")
 
-    if not state or not cookie_state or state != cookie_state:
+    if not state:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing state parameter in callback."
+        )
+    if not cookie_state:
         # Note: In a real Form Post, we can't easily query cookies if samesite is strict.
         # Ensure samesite='lax' or 'none' for this to work.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
+        )
+    if state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="State mismatch. Potential CSRF attack."

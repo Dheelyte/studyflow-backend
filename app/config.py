@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # --- Authentication Logic ---
     COOKIE_SECURE: bool = Field(default=False)
     COOKIE_SAMESITE: str = Field(default="lax")
+    COOKIE_DOMAIN: str = Field(default=None) # Optional: set to ".yourdomain.com" if needed for subdomains
     
     ACCESS_TOKEN_EXPIRES_MINUTES: int = Field(default=300, gt=0)
     REFRESH_TOKEN_EXPIRES_DAYS: int = Field(default=7, gt=0)
