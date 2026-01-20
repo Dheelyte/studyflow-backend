@@ -295,40 +295,34 @@ async def callback_google(
     error: Optional[str] = None,
 ):
     # 1. Handle User Cancellation
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
+    error_response = RedirectResponse(url=redirect_url)
+    
     if error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail=f"Google permission denied: {error}"
-        )
+        print("DEBUG: Google permission denied: ", error)
+        return error_response
 
-    # 3. SECURITY FIX: Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
     if not state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing state parameter in callback."
-        )
+        print("DEBUG: Missing state parameter in callback.")
+        return error_response
     if not cookie_state:
-        # This is the most common error: cookie lost due to cross-domain or http/https mismatch
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
-        )
+        print("DEBUG: Missing oauth_state cookie. Cookie may have been blocked or stripped.")
+        return error_response
     if state != cookie_state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="State mismatch. Potential CSRF attack."
-        )
+        print("DEBUG: State mismatch. Potential CSRF attack.")
+        return error_response
 
     if not code:
-        raise HTTPException(status_code=400, detail="No code received from Google")
+        print("DEBUG: No code received from Google")
+        return error_response
 
     # 3. Exchange code for tokens
     try:
         google_tokens = await google_service.get_tokens(code=code)
     except Exception as e:
-        # Log the actual error internally here
-        raise HTTPException(status_code=400, detail="Failed to authenticate with Google.")
+        print("DEBUG: Failed to authenticate with Google.")
+        return error_response
 
     # 4. Get User Info & Database Logic
     user_info = await google_service.get_user_info(google_tokens)
@@ -392,11 +386,13 @@ async def callback_github(
     error: Optional[str] = None,
 ):
     # 1. Handle User Cancellation
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
+    error_response = RedirectResponse(url=redirect_url)
+
+    # 1. Handle User Cancellation
     if error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail=f"Github permission denied: {error}"
-        )
+        print("DEBUG: Github permission denied: ", error)
+        return error_response
 
     # 2. Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
@@ -406,29 +402,25 @@ async def callback_github(
     print(f"DEBUG: All Cookies: {request.cookies.keys()}")
 
     if not state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing state parameter in callback."
-        )
+        print("DEBUG: Missing state parameter in callback.")
+        return error_response
     if not cookie_state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
-        )
+        print("DEBUG: Missing oauth_state cookie. Cookie may have been blocked or stripped.")
+        return error_response
     if state != cookie_state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="State mismatch. Potential CSRF attack."
-        )
+        print("DEBUG: State mismatch. Potential CSRF attack.")
+        return error_response
 
     if not code:
-        raise HTTPException(status_code=400, detail="No code received from Github")
+        print("DEBUG: No code received from Github")
+        return error_response
 
     # 3. Exchange code for tokens
     try:
         github_tokens = await github_service.get_tokens(code=code)
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Failed to authenticate with Github.")
+        print("DEBUG: Failed to authenticate with Github.")
+        return error_response
 
     # 4. Get User Info
     user_info = await github_service.get_user_info(github_tokens)
