@@ -24,18 +24,19 @@ class AppleAccessTokens:
     refresh_token: Optional[str] = None
 
 
-class AppleUserService:
+class AppleUserService:claims
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
 
     async def get_or_create_apple_user(self, email: str, user_name: dict = None) -> User:
         """
         Async implementation of get_or_create for Apple users.
+        Return boolean to indicate user creation
         """
         existing_user = await self.user_repo.get_by_email(email)
 
         if existing_user:
-            return existing_user
+            return existing_user, False
 
         # Create new user
         # Apple only sends name on the first login via the 'user' POST field
@@ -55,7 +56,7 @@ class AppleUserService:
             is_active=True,
         )
         await self.user_repo.add(new_user)
-        return new_user
+        return new_user, True
 
 
 class AppleRawLoginFlowService:

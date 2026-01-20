@@ -302,11 +302,6 @@ async def callback_google(
 
     # 2. SECURITY FIX: Verify State (CSRF Protection)
     cookie_state = request.cookies.get("oauth_state")
-    
-    # DEBUG LOGGING
-    print(f"DEBUG: Google Callback - State Param: {state}, Cookie State: {cookie_state}")
-    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
-
     if not state or not cookie_state or state != cookie_state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
@@ -328,7 +323,7 @@ async def callback_google(
     email = user_info.get("email")
     
     # 5. Get/Create User (Scalable: logic is delegated to service)
-    user = await google_user_service.get_or_create_google_user(email, user_info)
+    user, created = await google_user_service.get_or_create_google_user(email, user_info)
     
     # 6. Issue Tokens & Redirect
     access_token = auth_token_service.create_access_token(data={"sub": user.email})
@@ -343,6 +338,10 @@ async def callback_google(
     
     # Cleanup state cookie
     response.delete_cookie("oauth_state")
+
+    # Send welcome email if new user
+    if created:
+        await EmailService.send_welcome_email(user)
     
     return response
 
@@ -413,7 +412,7 @@ async def callback_github(
     email = user_info.get("email")
     
     # 5. Get/Create User
-    user = await github_user_service.get_or_create_github_user(email, user_info)
+    user, created = await github_user_service.get_or_create_github_user(email, user_info)
 
     # 6. Issue Tokens & Redirect
     access_token = auth_token_service.create_access_token(data={"sub": user.email})
@@ -428,6 +427,10 @@ async def callback_github(
     
     # Cleanup state cookie
     response.delete_cookie("oauth_state")
+
+    # Send welcome email if new user
+    if created:
+        await EmailService.send_welcome_email(user)
     
     return response
 
@@ -522,7 +525,7 @@ async def callback_apple(
         except:
             pass
             
-    user = await apple_user_service.get_or_create_apple_user(email, user_name_data)
+    user, created = await apple_user_service.get_or_create_apple_user(email, user_name_data)
 
     # 6. Issue Tokens & Redirect
     access_token = auth_token_service.create_access_token(data={"sub": user.email})
@@ -540,5 +543,9 @@ async def callback_apple(
     
     # Cleanup state cookie
     response.delete_cookie("oauth_state")
+
+    # Send welcome email if new user
+    if created:
+        await EmailService.send_welcome_email(user)
     
     return response

@@ -27,7 +27,7 @@ class EmailService:
     @staticmethod
     async def send_welcome_email(user):
         template_body = {
-            "name": user.first_name or "User",
+            "name": user.first_name or "",
             "dashboard_url": settings.FRONTEND_DASHBOARD_URL
         }
         

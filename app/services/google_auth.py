@@ -32,12 +32,12 @@ class GoogleUserService:
 
     async def get_or_create_google_user(self, email: str, user_info: dict) -> User:
         """
-        Async implementation of get_or_create.
+        Returns a boolean to indicate user creation.
         """
         existing_user = await self.user_repo.get_by_email(email)
 
         if existing_user:
-            return existing_user
+            return existing_user, False
 
         # Create new user
         new_user = User(
@@ -48,7 +48,7 @@ class GoogleUserService:
             is_active=True,
         )
         await self.user_repo.add(new_user)
-        return new_user
+        return new_user, True
 
 
 class GoogleRawLoginFlowService:

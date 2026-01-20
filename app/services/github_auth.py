@@ -26,12 +26,12 @@ class GithubUserService:
 
     async def get_or_create_github_user(self, email: str, user_info: dict) -> User:
         """
-        Async implementation of get_or_create for Github users.
+        Return a boolean to indicate user creation.
         """
         existing_user = await self.user_repo.get_by_email(email)
 
         if existing_user:
-            return existing_user
+            return existing_user, False
 
         # Create new user
         # Github names might be split or just 'name'
@@ -48,7 +48,7 @@ class GithubUserService:
             is_active=True,
         )
         await self.user_repo.add(new_user)
-        return new_user
+        return new_user, True
 
 
 class GithubRawLoginFlowService:
