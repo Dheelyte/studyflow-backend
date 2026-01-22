@@ -12,8 +12,8 @@ from ..repositories.auth import PasswordResetRepository
 from ..config import settings
 from ..models.user import PasswordResetToken, User
 from ..services.email import EmailService
-from ..services.user import UserService, get_user_repo
-from ..utils.security import Hasher, TokenGenerator
+from ..services.user import get_user_repo
+from ..utils.security import Hasher, TokenGenerator, CookieService
 
 
 class AuthService:
@@ -37,7 +37,7 @@ class AuthTokenService:
         self.user_repo = user_repo
     
     async def refresh_user_token(self, request: Request, response: Response):
-        token = request.cookies.get("refresh_token")
+        token = CookieService.get_cookie(request, "refresh_token")
         if not token:
             raise UnauthorizedError("Refresh token not found")
         

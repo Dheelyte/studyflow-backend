@@ -31,25 +31,25 @@ class TokenGenerator:
         return f"{code:06d}"  # Pad with zeros: 000123
 
 
-class OAuthStateService:
+class CookieService:
     @staticmethod
-    def get_oauth_state_robust(request: Request) -> str | None:
+    def get_cookie(request: Request, cookie_name: str) -> str | None:
         # 1. Try standard retrieval
-        state = request.cookies.get("oauth_state")
-        if state:
-            return state
+        cookie_value = request.cookies.get(cookie_name)
+        if cookie_value:
+            return cookie_value
 
         # 2. Fallback: Search all cookie values for the merged token
         for key, value in request.cookies.items():
-            if "oauth_state=" in value:
-                match = re.search(r'oauth_state=([a-zA-Z0-9\-\_]+)', value)
+            if cookie_name in value:
+                match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_]+)', value)
                 if match:
                     return match.group(1)
 
         # 3. Last Resort: Parse the raw Cookie header
         raw_cookie = request.headers.get("cookie", "")
-        if "oauth_state=" in raw_cookie:
-            match = re.search(r'oauth_state=([a-zA-Z0-9\-\_]+)', raw_cookie)
+        if cookie_name in raw_cookie:
+            match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_]+)', raw_cookie)
             if match:
                 return match.group(1)
 

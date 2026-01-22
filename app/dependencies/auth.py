@@ -1,21 +1,18 @@
 from typing import Annotated
 
-import jwt
-from fastapi import Depends, HTTPException, Request, status
-from jwt import PyJWTError
+from fastapi import Depends, Request
 
 from ..exceptions.base import UnauthorizedError
 from ..services.auth import AuthTokenServiceDep
-from ..config import settings
 from ..models.user import User
-from ..services.user import UserRepoDep, UserServiceDep
+from ..utils.security import CookieService
 
 
 
 async def get_auth_user(
     request: Request, token_service: AuthTokenServiceDep
 ):   
-    token = request.cookies.get("access_token")
+    token = CookieService.get_cookie(request, "access_token")
     if not token:
         raise UnauthorizedError("Not authenticated")
     
@@ -34,7 +31,7 @@ async def get_auth_user(
 async def optional_get_auth_user(
     request: Request, token_service: AuthTokenServiceDep
 ) -> User | None:
-    token = request.cookies.get("access_token")
+    token = CookieService.get_cookie(request, "access_token")
     if not token:
         return None
     

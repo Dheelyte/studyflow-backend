@@ -26,7 +26,7 @@ from ..services.apple_auth import AppleRawLoginFlowServiceDep, AppleUserServiceD
 from ..config import settings
 from ..services.auth import AuthTokenServiceDep
 from ..services.email import EmailService
-from ..utils.security import OAuthStateService
+from ..utils.security import CookieService
 
 router = APIRouter(
     prefix="/auth", tags=["Authentication"], dependencies=[Depends(db_session)]
@@ -308,7 +308,7 @@ async def callback_google(
         print("DEBUG: Google permission denied: ", error)
         return error_response
     
-    cookie_state = OAuthStateService.get_oauth_state_robust(request)
+    cookie_state = CookieService.get_cookie(request, "oauth_state")
 
     if not state:
         print("DEBUG: Missing state parameter in callback.")
@@ -407,7 +407,7 @@ async def callback_github(
         print("DEBUG: Github permission denied: ", error)
         return error_response
 
-    cookie_state = OAuthStateService.get_oauth_state_robust(request)
+    cookie_state = CookieService.get_cookie(request, "oauth_state")
 
     if not state:
         print("DEBUG: Missing state parameter in callback.")
@@ -502,12 +502,15 @@ async def callback_apple(
     user_json = form_data.get("user") # Only present on first login
     error = form_data.get("error")
 
+    error_redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
+    error_response = RedirectResponse(url=error_redirect_url)
+
     # 1. Handle User Cancellation / Errors
     if error:
         print("DEBUG: Apple permission denied: ", error)
         return error_response
 
-    cookie_state = OAuthStateService.get_oauth_state_robust(request)
+    cookie_state = CookieService.get_cookie(request, "oauth_state")
 
     if not state:
         print("DEBUG: Missing state parameter in callback.")
