@@ -26,6 +26,7 @@ from ..services.apple_auth import AppleRawLoginFlowServiceDep, AppleUserServiceD
 from ..config import settings
 from ..services.auth import AuthTokenServiceDep
 from ..services.email import EmailService
+from ..utils.security import OAuthStateService
 
 router = APIRouter(
     prefix="/auth", tags=["Authentication"], dependencies=[Depends(db_session)]
@@ -299,25 +300,26 @@ async def callback_google(
     state: Optional[str] = None,
     error: Optional[str] = None,
 ):
-    # 1. Handle User Cancellation
     error_redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
     error_response = RedirectResponse(url=error_redirect_url)
     
+    # 1. Handle User Cancellation
     if error:
         print("DEBUG: Google permission denied: ", error)
         return error_response
     
-    print("DEBUG: Raw Cookies:", request.cookies)
+    cookie_state = OAuthStateService.get_oauth_state_robust(request)
 
-    cookie_state = request.cookies.get("oauth_state")
     if not state:
         print("DEBUG: Missing state parameter in callback.")
         return error_response
+
     if not cookie_state:
-        print("DEBUG: Missing oauth_state cookie. Cookie may have been blocked or stripped.")
+        print(f"DEBUG: Missing oauth_state cookie. Raw cookies: {request.cookies}")
         return error_response
+
     if state != cookie_state:
-        print("DEBUG: State mismatch. Potential CSRF attack.")
+        print(f"DEBUG: State mismatch. URL: {state} vs COOKIE: {cookie_state}")
         return error_response
 
     if not code:
@@ -373,13 +375,7 @@ async def login_github(
     auth_url, state = github_service.get_authorization_url()
     
     response = RedirectResponse(url=auth_url)
-
-    # Prevent caching
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
     
-    # Store state in cookie for CSRF protection
     response.set_cookie(
         key="oauth_state",
         value=state,
@@ -403,7 +399,6 @@ async def callback_github(
     state: Optional[str] = None,
     error: Optional[str] = None,
 ):
-    # 1. Handle User Cancellation
     redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
     error_response = RedirectResponse(url=redirect_url)
 
@@ -412,21 +407,18 @@ async def callback_github(
         print("DEBUG: Github permission denied: ", error)
         return error_response
 
-    # 2. Verify State (CSRF Protection)
-    cookie_state = request.cookies.get("oauth_state")
-    
-    # DEBUG LOGGING
-    print(f"DEBUG: Github Callback - State Param: {state}, Cookie State: {cookie_state}")
-    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
+    cookie_state = OAuthStateService.get_oauth_state_robust(request)
 
     if not state:
         print("DEBUG: Missing state parameter in callback.")
         return error_response
+
     if not cookie_state:
-        print("DEBUG: Missing oauth_state cookie. Cookie may have been blocked or stripped.")
+        print(f"DEBUG: Missing oauth_state cookie. Raw cookies: {request.cookies}")
         return error_response
+
     if state != cookie_state:
-        print("DEBUG: State mismatch. Potential CSRF attack.")
+        print(f"DEBUG: State mismatch. URL: {state} vs COOKIE: {cookie_state}")
         return error_response
 
     if not code:
@@ -512,45 +504,33 @@ async def callback_apple(
 
     # 1. Handle User Cancellation / Errors
     if error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail=f"Apple permission denied: {error}"
-        )
+        print("DEBUG: Apple permission denied: ", error)
+        return error_response
 
-    # 2. Verify State (CSRF Protection)
-    cookie_state = request.cookies.get("oauth_state")
-    
-    # DEBUG LOGGING
-    print(f"DEBUG: Apple Callback - State Param: {state}, Cookie State: {cookie_state}")
-    print(f"DEBUG: All Cookies: {request.cookies.keys()}")
+    cookie_state = OAuthStateService.get_oauth_state_robust(request)
 
     if not state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing state parameter in callback."
-        )
+        print("DEBUG: Missing state parameter in callback.")
+        return error_response
+
     if not cookie_state:
-        # Note: In a real Form Post, we can't easily query cookies if samesite is strict.
-        # Ensure samesite='lax' or 'none' for this to work.
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Missing oauth_state cookie. Cookie may have been blocked or stripped."
-        )
+        print(f"DEBUG: Missing oauth_state cookie. Raw cookies: {request.cookies}")
+        return error_response
+
     if state != cookie_state:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="State mismatch. Potential CSRF attack."
-        )
+        print(f"DEBUG: State mismatch. URL: {state} vs COOKIE: {cookie_state}")
+        return error_response
 
     if not code:
-        raise HTTPException(status_code=400, detail="No code received from Apple")
+        print("DEBUG: No code received from Apple")
+        return error_response
 
     # 3. Exchange code for tokens
     try:
         apple_tokens = await apple_service.get_tokens(code=code)
     except Exception as e:
-        # Log error
-        raise HTTPException(status_code=400, detail="Failed to authenticate with Apple.")
+        print("DEBUG: Failed to authenticate with Apple.")
+        return error_response
 
     # 4. Verify ID Token & Get User Info
     # Apple ID token contains email
@@ -558,7 +538,8 @@ async def callback_apple(
     email = claims.get("email")
     
     if not email:
-         raise HTTPException(status_code=400, detail="Email not found in Apple ID Token")
+        print("DEBUG: Email not found in Apple ID Token")
+        return error_response
 
     # 5. Get/Create User
     # Parse user_json if available (first login only)
