@@ -36,7 +36,7 @@ class EmailService:
         conf.TEMPLATE_FOLDER = settings.TEMPLATE_FOLDER
         
         message = MessageSchema(
-            subject="Welcome to Studywise!",
+            subject="Welcome to Primerly!",
             recipients=[user.email],
             template_body=template_body,
             subtype=MessageType.html,
