@@ -132,6 +132,7 @@ class AuthTokenService:
             samesite=settings.COOKIE_SAMESITE,
             max_age=settings.ACCESS_TOKEN_EXPIRES_MINUTES * 60,
             path="/",
+            domain=settings.COOKIE_DOMAIN,
         )
         if refresh_token:
             response.set_cookie(
@@ -142,12 +143,13 @@ class AuthTokenService:
                 samesite=settings.COOKIE_SAMESITE,
                 max_age=settings.REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60,
                 path="/api/v1/auth/refresh",
+                domain=settings.COOKIE_DOMAIN,
             )
 
     def clear_auth_cookies(self, response: Response):
         """Clear authentication cookies."""
-        response.delete_cookie(key="access_token", path="/")
-        response.delete_cookie(key="refresh_token", path="/api/v1/auth/refresh")
+        response.delete_cookie(key="access_token", path="/", domain=settings.COOKIE_DOMAIN)
+        response.delete_cookie(key="refresh_token", path="/api/v1/auth/refresh", domain=settings.COOKIE_DOMAIN)
 
 
 class PasswordResetService:

@@ -348,7 +348,13 @@ async def callback_google(
     auth_token_service.set_auth_cookies(response, access_token, refresh_token)
     
     # Cleanup state cookie
-    response.delete_cookie("oauth_state")
+    response.delete_cookie(
+        key="oauth_state",
+        path="/",
+        domain=settings.COOKIE_DOMAIN,
+        secure=settings.COOKIE_SECURE,
+        httponly=True
+    )
 
     # Send welcome email if new user
     if created:
