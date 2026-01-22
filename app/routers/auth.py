@@ -300,12 +300,14 @@ async def callback_google(
     error: Optional[str] = None,
 ):
     # 1. Handle User Cancellation
-    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
-    error_response = RedirectResponse(url=redirect_url)
+    error_redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=false"
+    error_response = RedirectResponse(url=error_redirect_url)
     
     if error:
         print("DEBUG: Google permission denied: ", error)
         return error_response
+    
+    print("DEBUG: Raw Cookies:", request.cookies)
 
     cookie_state = request.cookies.get("oauth_state")
     if not state:
