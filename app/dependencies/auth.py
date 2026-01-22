@@ -17,6 +17,8 @@ async def get_auth_user(
         raise UnauthorizedError("Not authenticated")
     
     email = token_service.verify_access_token(token)
+    print("DEBUG: Token", token)
+    print("DEBUG: Email", email)
     if not email:
         raise UnauthorizedError("Invalid or expired token")
         
