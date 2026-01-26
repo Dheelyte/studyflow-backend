@@ -10,6 +10,7 @@ from .comment import Comment
 from .like import Like
 from .activity import UserDailyActivity
 from .quiz import Quiz
+from .waitlist import Waitlist
 
 
 # This ensures all models are loaded before create_all() is called
@@ -28,4 +29,5 @@ __all__ = [
     "Comment",
     "Like",
     "UserDailyActivity",
+    "Waitlist",
 ]
