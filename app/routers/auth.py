@@ -1,5 +1,7 @@
 import json
 from typing import Optional
+from urllib.parse import urlencode
+
 
 from fastapi import APIRouter, Depends, Request, Response, status, HTTPException
 from fastapi.responses import RedirectResponse
@@ -264,7 +266,8 @@ async def logout(response: Response, token_Service: AuthTokenServiceDep):
 
 @router.get("/login/google")
 async def login_google(
-    google_service: GoogleRawLoginFlowServiceDep
+    google_service: GoogleRawLoginFlowServiceDep,
+    redirect: Optional[str] = None
 ):
     """Initiates the Google OAuth flow."""
     auth_url, state = google_service.get_authorization_url()
@@ -287,6 +290,20 @@ async def login_google(
         path="/",
         domain=settings.COOKIE_DOMAIN,
     )
+    
+    # Store redirect URL if present
+    if redirect:
+        response.set_cookie(
+            key="oauth_redirect",
+            value=redirect,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite=settings.COOKIE_SAMESITE,
+            max_age=300,
+            path="/",
+            domain=settings.COOKIE_DOMAIN,
+        )
+
     
     return response
 
@@ -344,8 +361,13 @@ async def callback_google(
     access_token = auth_token_service.create_access_token(data={"sub": user.email})
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
     
-    # Determine redirect URL (could be dynamic based on user role)
-    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=true"
+    # Determine redirect URL
+    params = {"login_success": "true"}
+    redirect_cookie = CookieService.get_cookie(request, "oauth_redirect")
+    if redirect_cookie:
+        params["redirect"] = redirect_cookie
+    
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?{urlencode(params)}"
     response = RedirectResponse(url=redirect_url)
     
     # Set secure cookies
@@ -354,6 +376,13 @@ async def callback_google(
     # Cleanup state cookie
     response.delete_cookie(
         key="oauth_state",
+        path="/",
+        domain=settings.COOKIE_DOMAIN,
+        secure=settings.COOKIE_SECURE,
+        httponly=True
+    )
+    response.delete_cookie(
+        key="oauth_redirect",
         path="/",
         domain=settings.COOKIE_DOMAIN,
         secure=settings.COOKIE_SECURE,
@@ -369,7 +398,8 @@ async def callback_google(
 
 @router.get("/login/github")
 async def login_github(
-    github_service: GithubRawLoginFlowServiceDep
+    github_service: GithubRawLoginFlowServiceDep,
+    redirect: Optional[str] = None
 ):
     """Initiates the Github OAuth flow."""
     auth_url, state = github_service.get_authorization_url()
@@ -386,6 +416,19 @@ async def login_github(
         path="/",
         domain=settings.COOKIE_DOMAIN,
     )
+    
+    # Store redirect URL if present
+    if redirect:
+        response.set_cookie(
+            key="oauth_redirect",
+            value=redirect,
+            httponly=True,
+            secure=settings.COOKIE_SECURE,
+            samesite=settings.COOKIE_SAMESITE,
+            max_age=300,
+            path="/",
+            domain=settings.COOKIE_DOMAIN,
+        )
     
     return response
 
@@ -444,7 +487,12 @@ async def callback_github(
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
     
     # Redirect with success flag
-    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?login_success=true"
+    params = {"login_success": "true"}
+    redirect_cookie = CookieService.get_cookie(request, "oauth_redirect")
+    if redirect_cookie:
+        params["redirect"] = redirect_cookie
+    
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?{urlencode(params)}"
     response = RedirectResponse(url=redirect_url)
     
     # Set secure cookies
@@ -452,6 +500,7 @@ async def callback_github(
     
     # Cleanup state cookie
     response.delete_cookie("oauth_state")
+    response.delete_cookie("oauth_redirect") 
 
     # Send welcome email if new user
     if created:
@@ -462,7 +511,8 @@ async def callback_github(
 
 @router.get("/login/apple")
 async def login_apple(
-    apple_service: AppleRawLoginFlowServiceDep
+    apple_service: AppleRawLoginFlowServiceDep,
+    redirect: Optional[str] = None
 ):
     """Initiates the Apple Sign In flow."""
     auth_url, state = apple_service.get_authorization_url()
@@ -480,6 +530,23 @@ async def login_apple(
         path="/",
         domain=settings.COOKIE_DOMAIN,
     )
+    
+    # Store redirect URL if present
+    if redirect:
+        response.set_cookie(
+            key="oauth_redirect",
+            value=redirect,
+            httponly=True,
+            secure=True, 
+            samesite="none", # Apple requires POST callback, so SameSite=None is needed? Wait, no, the redirect cookie is for our side. 
+            # But since Apple sends a POST request to callback, we need SameSite=None if we want to read it? 
+            # Actually, the callback reads cookies.
+            # If the callback is a POST from Apple, the browser might not send SameSite=Lax cookies if it's considered cross-site?
+            # Yes, Apple Sign In is cross-site POST. So we need SameSite=None, Secure=True.
+            max_age=300,
+            path="/",
+            domain=settings.COOKIE_DOMAIN,
+        )
     
     return response
 
@@ -560,7 +627,13 @@ async def callback_apple(
     refresh_token = auth_token_service.create_refresh_token(data={"sub": user.email})
     
     # Redirect with success flag
-    redirect_url = f"{settings.FRONTEND_URL}/dashboard?login_success=true"
+    params = {"login_success": "true"}
+    redirect_cookie = CookieService.get_cookie(request, "oauth_redirect")
+    if redirect_cookie:
+        params["redirect"] = redirect_cookie
+    
+    # Apple POST callback requires redirecting to frontend login for validation too
+    redirect_url = f"{settings.FRONTEND_REDIRECT_URL}?{urlencode(params)}"
     
     # Since this is a POST request from Apple, we must return a 302 Found or 303 See Other
     # to redirect the user's browser to our frontend.
@@ -571,6 +644,7 @@ async def callback_apple(
     
     # Cleanup state cookie
     response.delete_cookie("oauth_state")
+    response.delete_cookie("oauth_redirect")
 
     # Send welcome email if new user
     if created:
