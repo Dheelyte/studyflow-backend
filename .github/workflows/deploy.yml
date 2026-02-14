@@ -75,27 +75,53 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # - name: Login to Amazon ECR
+      #   uses: aws-actions/amazon-ecr-login@v2
+
       - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ECR_REPO_NAME }} .
-
-      - name: Tag image
+      - name: Build and Push
+        id: build-image
         env:
-          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPO_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker tag ${{ secrets.ECR_REPO_NAME }}:latest $ECR_URI:latest
-
-      - name: Push image to ECR
-        env:
-          ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}
-        run: |
-          docker push $ECR_URI:latest
+          docker buildx build \
+            --platform linux/amd64 \
+            --provenance=false \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            --push .
 
       - name: Deploy Lambda
         run: |
           aws lambda update-function-code \
             --function-name ${{ secrets.LAMBDA_NAME }} \
-            --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}:latest
+            --image-uri ${{ steps.build-image.outputs.image }}
+          
+          aws lambda wait function-updated --function-name ${{ secrets.LAMBDA_NAME }}
+
+      # - name: Build Docker image
+      #   run: |
+      #     docker build -t ${{ secrets.ECR_REPO_NAME }} .
+
+      # - name: Tag image
+      #   env:
+      #     ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}
+      #   run: |
+      #     docker tag ${{ secrets.ECR_REPO_NAME }}:latest $ECR_URI:latest
+
+      # - name: Push image to ECR
+      #   env:
+      #     ECR_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}
+      #   run: |
+      #     docker push $ECR_URI:latest
+
+      # - name: Deploy Lambda
+      #   run: |
+      #     aws lambda update-function-code \
+      #       --function-name ${{ secrets.LAMBDA_NAME }} \
+      #       --image-uri ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME }}:latest
