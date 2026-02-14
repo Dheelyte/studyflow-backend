@@ -364,6 +364,7 @@ async def callback_google(
     # Determine redirect URL
     params = {"login_success": "true"}
     redirect_cookie = CookieService.get_cookie(request, "oauth_redirect")
+    print("================= REDIRECT COOKIE", redirect_cookie)
     if redirect_cookie:
         params["redirect"] = redirect_cookie
     
