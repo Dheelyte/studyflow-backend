@@ -103,8 +103,6 @@ jobs:
             --function-name ${{ secrets.LAMBDA_NAME }} \
             --image-uri ${{ steps.build-image.outputs.image }}
           
-          aws lambda wait function-updated --function-name ${{ secrets.LAMBDA_NAME }}
-
       # - name: Build Docker image
       #   run: |
       #     docker build -t ${{ secrets.ECR_REPO_NAME }} .
