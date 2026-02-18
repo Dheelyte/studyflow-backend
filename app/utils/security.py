@@ -42,14 +42,14 @@ class CookieService:
         # 2. Fallback: Search all cookie values for the merged token
         for key, value in request.cookies.items():
             if cookie_name in value:
-                match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_\.]+)', value)
+                match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_\.\%\/]+)', value)
                 if match:
                     return match.group(1)
 
         # 3. Last Resort: Parse the raw Cookie header
         raw_cookie = request.headers.get("cookie", "")
         if cookie_name in raw_cookie:
-            match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_\.]+)', raw_cookie)
+            match = re.search(rf'{cookie_name}=([a-zA-Z0-9\-\_\.\%\/]+)', raw_cookie)
             if match:
                 return match.group(1)
 
