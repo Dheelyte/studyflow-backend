@@ -33,15 +33,17 @@ class PostService:
         if not community:
             raise NotFoundError("Community not found")
         
-        # User validation implicitly via FK or check
-        # user = await self.user_repo.get_by_id(user_id) # Optional check
+        user = await self.user_repo.get_by_id(user_id)
         
         new_post = Post(
             content=post_data.content,
             community_id=post_data.community_id,
             user_id=user_id
         )
-        return await self.post_repo.create(new_post)
+        post = await self.post_repo.create(new_post)
+        if user:
+            setattr(post, "user_name", f"{user.first_name} {user.last_name}")
+        return post
     
     async def get_post(self, post_id: int, user_id: int = None) -> Post:
         post = await self.post_repo.get_by_id(post_id)

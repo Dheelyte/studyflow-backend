@@ -1,6 +1,7 @@
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, func, select
+from sqlalchemy.orm import joinedload
 
 from app.models.like import Like
 
@@ -21,8 +22,13 @@ class PostRepository:
         return post
     
     async def get_by_id(self, post_id: int) -> Post | None:
-        result = await self.session.execute(select(Post).where(Post.id == post_id))
-        return result.scalar_one_or_none()
+        result = await self.session.execute(
+            select(Post).options(joinedload(Post.user)).where(Post.id == post_id)
+        )
+        post = result.scalar_one_or_none()
+        if post and post.user:
+            setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
+        return post
     
     async def get_feed_for_user(self, user_id: int, skip: int, limit: int) -> list[Post]:
         comments_count_sub = (
@@ -33,6 +39,7 @@ class PostRepository:
         
         stmt = (
             select(Post, comments_count_sub.label("comments_count"))
+            .options(joinedload(Post.user))
             .join(community_members, Post.community_id == community_members.c.community_id)
             .where(community_members.c.user_id == user_id)
             .order_by(Post.created_at.desc())
@@ -45,6 +52,8 @@ class PostRepository:
         for row in result:
             post = row[0]
             setattr(post, "comments_count", row[1] or 0)
+            if post.user:
+                setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
             posts.append(post)
         return posts
     
@@ -58,6 +67,7 @@ class PostRepository:
         
         result = await self.session.execute(
             select(Post, comments_count_sub.label("comments_count"))
+            .options(joinedload(Post.user))
             .order_by(Post.created_at.desc())
             .offset(skip)
             .limit(limit)
@@ -67,6 +77,8 @@ class PostRepository:
         for row in result:
             post = row[0]
             setattr(post, "comments_count", row[1] or 0)
+            if post.user:
+                setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
             posts.append(post)
         return posts
     
@@ -79,6 +91,7 @@ class PostRepository:
         
         result = await self.session.execute(
             select(Post, comments_count_sub.label("comments_count"))
+            .options(joinedload(Post.user))
             .where(Post.community_id == community_id)
             .order_by(Post.created_at.desc())
             .offset(skip)
@@ -89,6 +102,8 @@ class PostRepository:
         for row in result:
             post = row[0]
             setattr(post, "comments_count", row[1] or 0)
+            if post.user:
+                setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
             posts.append(post)
         return posts
     

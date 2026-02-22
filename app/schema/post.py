@@ -20,6 +20,7 @@ class PostUpdate(BaseModel):
 class PostResponse(PostBase):
     id: int
     user_id: UUID
+    user_name: str | None = None
     community_id: int
     comments_count: int
     likes_count: int = 0
