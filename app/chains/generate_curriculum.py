@@ -20,8 +20,8 @@ def create_generate_curriculum_chain():
     user_template = """### Role
     You are an expert Instructional Designer and Subject Matter Expert. Your task is to design a high-quality, structured curriculum for a learner based on the following parameters:
     - Topic: {topic}
-    - Experience Level: {experience_level} (e.g., Beginner, Intermediate, Advanced)
-    - Duration: {duration} (e.g., 4 weeks, 10 hours)
+    - Experience Level: {experience_level}
+    - Duration: {duration}
 
     ### Constraints & Quality Standards
     1. Scalability: Organize the curriculum into logical 'Modules' and 'Lessons'. For the curriculum title, don't 
