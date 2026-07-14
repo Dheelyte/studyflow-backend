@@ -15,67 +15,39 @@
       "lessons": [
         {
           "lesson_title": "The Data Analysis Process",
-          "topics_covered": [
-            "Data Analysis vs. Data Science",
-            "Structured vs. Unstructured Data",
-            "The 6 Steps of Analysis",
-            "Data Ethics and Bias"
-          ],
           "estimated_time": "2 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "The Data Analysis Process",
-              "description": "A comprehensive guide on the 5-6 steps of data analysis (Ask, Prepare, Process, Analyze, Share, Act).",
-              "resource_url": "https://www.coursera.org/articles/data-analysis-process"
+              "title": "The Data Analysis Process",
+              "description": "A comprehensive walkthrough of the six stages of the analytics life cycle - Ask, Prepare, Process, Analyze, Share, and Act - and how each stage builds on the previous one. You will learn how a clear business question shapes the data you collect, why preparation and cleaning often consume the bulk of an analyst's time, and how processing decisions ripple downstream into the analysis itself. By the end of this topic you should be able to explain each phase in your own words, identify which phase a real-world task belongs to, and describe what artifacts (questions, cleaned datasets, dashboards, recommendations) flow between phases. This framework becomes the backbone for every other lesson in the course."
             },
             {
-              "type": "Video",
-              "label": "What is Data Analysis?",
-              "description": "A high-level overview of what data analysts actually do day-to-day.",
-              "resource_url": "https://www.youtube.com/watch?v=5DKRk1Y2_XE"
+              "title": "What is Data Analysis?",
+              "description": "A grounded look at what data analysts actually do day-to-day, including the difference between data analysis and data science, the kinds of questions analysts answer, and the tools they typically reach for. We contrast descriptive, diagnostic, predictive, and prescriptive analytics so you can recognize each style in the wild, and we walk through several short case studies - a marketing funnel review, an operations bottleneck investigation, and a product retention deep-dive - to show how analysts translate vague stakeholder asks into concrete data questions. You will leave with a clear mental model of the analyst role and the kinds of problems where this skill set creates value."
             }
           ]
         },
         {
           "lesson_title": "Excel Essentials: Cleaning and Formulas",
-          "topics_covered": [
-            "Data Cleaning (Removing duplicates, text to columns)",
-            "Logical Functions (IF, IFS)",
-            "Lookup Functions (VLOOKUP, XLOOKUP)",
-            "Conditional Formatting"
-          ],
           "estimated_time": "4 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Interactive",
-              "label": "Excel Formulas and Functions",
-              "description": "Hands-on tutorials for the most critical Excel functions.",
-              "resource_url": "https://edu.gcfglobal.org/en/excelformulas/"
+              "title": "Excel Formulas and Functions",
+              "description": "A hands-on tour of the Excel formulas that show up in nearly every analyst's workflow: IF and IFS for conditional logic, VLOOKUP and XLOOKUP for joining tables across sheets, and the small ecosystem of text and date helpers that turn raw exports into useful columns. You will learn how to compose these functions, debug common errors like #N/A and #REF, and structure formulas so that they remain readable as a workbook grows. We also cover absolute vs. relative references, named ranges, and a few patterns (lookup-with-fallback, layered IFS, error-tolerant matches) that scale from quick spreadsheets to shared team workbooks."
             },
             {
-              "type": "Video",
-              "label": "Data Cleaning in Excel",
-              "description": "Techniques for preparing messy data for analysis.",
-              "resource_url": "https://www.youtube.com/watch?v=PrE3tJvWfGw"
+              "title": "Data Cleaning in Excel",
+              "description": "Practical techniques for taking a messy spreadsheet and turning it into something an analyst can actually trust. You will practice removing duplicates with awareness of which columns define uniqueness, splitting concatenated fields with Text-to-Columns and Flash Fill, normalizing inconsistent text with TRIM, CLEAN, and PROPER, and handling missing values without silently dropping rows. We close with a guided exercise that uses conditional formatting to spot anomalies - outliers, unexpected blanks, and duplicate keys - before they corrupt downstream analysis. The goal is to build a repeatable cleaning checklist you can run before any analysis."
             }
           ]
         },
         {
           "lesson_title": "Aggregation with Pivot Tables",
-          "topics_covered": [
-            "Creating Pivot Tables",
-            "Slicers and Timelines",
-            "Calculated Fields",
-            "Pivot Charts"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "Create a PivotTable to Analyze Worksheet Data",
-              "description": "Official Microsoft guide to one of the most powerful tools in Excel.",
-              "resource_url": "https://support.microsoft.com/en-us/office/create-a-pivottable-to-analyze-worksheet-data-a9a84538-bfe9-40a9-a8e9-f99134456576"
+              "title": "Pivot Tables in Excel",
+              "description": "A deep dive into Pivot Tables - arguably the highest-leverage feature in Excel for an analyst. You will learn how a Pivot Table reshapes a flat dataset into rows, columns, and aggregated values; how to swap dimensions on the fly to test different views; and how slicers and timelines turn a static table into an interactive mini-dashboard. We cover calculated fields for ratios and per-row metrics that the source data does not provide, Pivot Charts for quickly visualizing aggregations, and best practices around source data structure (one row per observation, no merged cells) that make Pivot Tables behave predictably as the data grows."
             }
           ]
         }
@@ -87,59 +59,35 @@
       "lessons": [
         {
           "lesson_title": "Relational Databases & SQL Syntax",
-          "topics_covered": [
-            "What is a RDBMS?",
-            "Primary and Foreign Keys",
-            "SELECT, FROM, DISTINCT",
-            "Ordering Results"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Interactive",
-              "label": "Intro to SQL: Querying and managing data",
-              "description": "Khan Academy's interactive environment to learn database concepts.",
-              "resource_url": "https://www.khanacademy.org/computing/computer-programming/sql"
+              "title": "Introduction to Relational Databases",
+              "description": "An accessible introduction to relational database management systems (RDBMS) - what they are, why companies store their operational data in them, and how that shapes the data an analyst sees. You will learn how tables, rows, and columns map to real-world entities, why primary keys uniquely identify a row and why foreign keys define relationships across tables, and how normalization keeps data consistent at the cost of more joins later. We then walk through the anatomy of a basic SELECT statement (SELECT, FROM, DISTINCT, ORDER BY) so the syntax we layer on next week sits on a solid foundation rather than feeling like memorized incantations."
             }
           ]
         },
         {
           "lesson_title": "Filtering and Aggregating Data",
-          "topics_covered": [
-            "WHERE clauses and Operators",
-            "Aggregate Functions (COUNT, SUM, AVG, MIN, MAX)",
-            "GROUP BY and HAVING"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "SQL Aggregate Functions",
-              "description": "Reference and examples for summarizing data in SQL.",
-              "resource_url": "https://www.w3schools.com/sql/sql_count_avg_sum.asp"
+              "title": "SQL Aggregate Functions",
+              "description": "A thorough look at how to summarize and slice data inside the database using SQL. You will practice writing WHERE clauses with comparison, BETWEEN, IN, and pattern-matching operators to filter rows precisely, then layer aggregate functions (COUNT, SUM, AVG, MIN, MAX) on top to compute group-level metrics. We dedicate special attention to GROUP BY (and the common bug where SELECT columns do not match the grouping) and to HAVING - the filter that runs after aggregation, on the aggregated values themselves. The lesson ends with a short library of aggregation patterns (top-N per group, distinct counts, conditional sums) that you will reach for again and again."
             }
           ]
         },
         {
           "lesson_title": "Joining Tables",
-          "topics_covered": [
-            "Understanding Joins (Inner vs. Outer)",
-            "LEFT JOIN, RIGHT JOIN",
-            "Unions"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Video",
-              "label": "Visualizing SQL Joins",
-              "description": "A visual explanation of how Venn diagrams map to SQL join types.",
-              "resource_url": "https://www.youtube.com/watch?v=9yeOJ0ZMUYw"
+              "title": "Visualizing SQL Joins",
+              "description": "A visual, intuition-first explanation of how SQL joins combine rows from multiple tables. You will see how INNER, LEFT, RIGHT, and FULL OUTER joins map to overlapping circles in a Venn diagram and, more importantly, what each join does to the row count of your result set when keys are missing on one side. We also cover the common pitfalls - accidental row explosions when join keys are not unique, NULL behavior in outer joins, and the difference between a UNION and a JOIN - so you can predict the shape of a query's output before you run it."
             },
             {
-              "type": "Interactive",
-              "label": "SQL Joins Interactive Tutorial",
-              "description": "Practice writing queries that combine multiple tables.",
-              "resource_url": "https://sqlbolt.com/lesson/select_queries_with_joins"
+              "title": "SQL Joins Practice",
+              "description": "Hands-on practice combining multiple tables to answer realistic business questions. You will write queries that enrich a transactions table with customer attributes, compute per-segment summaries that span three or more tables, and use UNION (and UNION ALL) to stitch together datasets with the same schema. Along the way we discuss when to push aggregation before vs. after a join, how to debug joins that produce duplicates, and how aliasing tables and columns keeps multi-join queries readable. The goal is to leave this lesson comfortable joining several tables in a single query without losing track of what each row represents."
             }
           ]
         }
@@ -151,49 +99,29 @@
       "lessons": [
         {
           "lesson_title": "Principles of Data Visualization",
-          "topics_covered": [
-            "Choosing the Right Chart Type",
-            "Color Theory in Data",
-            "Decluttering Visuals",
-            "Cognitive Load"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "Data Visualization 101",
-              "description": "HubSpot's guide to designing charts and graphs.",
-              "resource_url": "https://blog.hubspot.com/marketing/data-visualization-guide"
+              "title": "Data Visualization Fundamentals",
+              "description": "An introduction to the design principles that separate a chart that informs from one that misleads. You will study the role of preattentive attributes (position, length, color, shape) and how each one maps to the kinds of comparisons readers can make at a glance. We discuss the data-ink ratio and decluttering - removing chart junk so the data carries the message - and how to manage cognitive load by choosing a small number of strong visual encodings rather than many weak ones. The lesson closes with a critique of three real charts, identifying what works, what misleads, and how each could be redesigned for clarity."
             },
             {
-              "type": "Article",
-              "label": "Choosing the Right Chart",
-              "description": "A catalogue of chart types and when to use them.",
-              "resource_url": "https://datavizcatalogue.com/"
+              "title": "Choosing the Right Chart",
+              "description": "A practical guide to picking a chart type that matches both the data you have and the question your audience is asking. You will learn when to reach for a bar chart vs. a line chart, why pie charts often fail, and the trade-offs between scatter plots, heatmaps, and small multiples for showing relationships across many groups. We walk through a decision flow - starting from the comparison you want the reader to make (across categories, over time, between distributions, between parts and a whole) - that you can apply when designing your own visualizations. By the end you should be able to defend each chart choice in a dashboard with a one-sentence rationale."
             }
           ]
         },
         {
           "lesson_title": "Introduction to BI Tools (Tableau Public)",
-          "topics_covered": [
-            "Connecting to Data Sources",
-            "Dimensions vs. Measures",
-            "Building Basic Charts",
-            "Creating a Dashboard"
-          ],
           "estimated_time": "5 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Video",
-              "label": "Tableau for Beginners",
-              "description": "A full tutorial on getting started with the free version of Tableau.",
-              "resource_url": "https://www.youtube.com/watch?v=TPtlYQt9QB4"
+              "title": "Tableau for Beginners",
+              "description": "A guided walkthrough of getting productive in Tableau Public, starting from connecting to a CSV or spreadsheet through to building your first analytical worksheet. You will learn how Tableau classifies fields as dimensions vs. measures, why that distinction drives every drag-and-drop visualization you build, and how marks, shelves, and the show-me menu work together to suggest chart types. We cover continuous vs. discrete fields, basic calculated fields, and the workflow of iterating between a worksheet and your underlying data to spot quality issues. By the end you'll have a small portfolio of single-view charts you've built yourself."
             },
             {
-              "type": "Interactive",
-              "label": "Tableau Public Training Videos",
-              "description": "Official free training videos from Salesforce/Tableau.",
-              "resource_url": "https://www.tableau.com/learn/training/20214"
+              "title": "Building Dashboards in Tableau",
+              "description": "An end-to-end lesson on combining multiple worksheets into a coherent, interactive dashboard. You will learn how Tableau's tiled vs. floating layouts behave at different screen sizes, how to use containers to keep alignment under control, and how filters, parameters, and dashboard actions let a viewer drill from a high-level overview into specific subsets. We also cover information hierarchy - title, KPIs, supporting charts, drill-down - and the principle of designing for the question your audience will ask first. You'll finish by publishing a small dashboard to Tableau Public and sharing the link."
             }
           ]
         }
@@ -205,61 +133,35 @@
       "lessons": [
         {
           "lesson_title": "Python Basics",
-          "topics_covered": [
-            "Variables and Data Types",
-            "Lists and Dictionaries",
-            "Loops and Functions",
-            "Jupyter Notebook Environment"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Interactive",
-              "label": "Learn Python 3",
-              "description": "Codecademy or similar free interactive basic syntax course.",
-              "resource_url": "https://www.kaggle.com/learn/python"
+              "title": "Python Programming Fundamentals",
+              "description": "A from-scratch introduction to Python aimed at analysts coming from Excel and SQL. You will learn how variables, core data types (int, float, str, bool), and control flow (if/else, for, while) compose into small scripts, and how lists and dictionaries become the everyday containers for tabular and key-value data. We also introduce functions for reusing logic, basic error handling so a single bad row does not crash an entire script, and the Jupyter Notebook environment - cells, kernels, and the iterative workflow that makes notebooks ideal for analysis. The lesson ends with a short exercise that translates a familiar Excel transformation into a Python equivalent."
             }
           ]
         },
         {
           "lesson_title": "Data Analysis with Pandas",
-          "topics_covered": [
-            "Importing Pandas",
-            "DataFrames and Series",
-            "Reading CSV files",
-            "Basic filtering and descriptive statistics"
-          ],
           "estimated_time": "4 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "10 Minutes to pandas",
-              "description": "The official documentation's quick start guide for new users.",
-              "resource_url": "https://pandas.pydata.org/docs/user_guide/10min.html"
+              "title": "Getting Started with Pandas",
+              "description": "An introduction to the two core Pandas data structures - Series (a labeled 1-D array) and DataFrame (a labeled 2-D table) - and how they let you express analysis in a few lines of expressive code. You will learn how to read CSV and Excel files into a DataFrame, inspect it with head, info, and describe, and select rows and columns using both label-based (.loc) and position-based (.iloc) indexing. We discuss why Pandas operations return new objects rather than mutating in place, how chained assignments cause subtle bugs, and the small handful of patterns (assign, query, pipe) that keep analytical code readable as it grows."
             },
             {
-              "type": "Video",
-              "label": "Pandas Tutorial for Data Analysis",
-              "description": "A walk-through of analyzing real data using Python.",
-              "resource_url": "https://www.youtube.com/watch?v=vmEHCJofslg"
+              "title": "Data Analysis with Python and Pandas",
+              "description": "A hands-on lesson that takes a real dataset from raw CSV to a finished mini-analysis. You will practice filtering rows, creating derived columns, grouping with groupby and aggregating with multiple functions, and merging DataFrames with the same mental model you built for SQL joins. Along the way we cover descriptive statistics (mean, median, std, percentiles), spotting outliers, and the basic plotting hooks that Pandas exposes through Matplotlib. The lesson ends with a guided write-up: turning the numbers you computed into a short narrative - finding, evidence, and recommendation - the way you would present them to a stakeholder."
             }
           ]
         },
         {
           "lesson_title": "Capstone: Putting it All Together",
-          "topics_covered": [
-            "Selecting a Dataset",
-            "Formulating Questions",
-            "Execution of Analysis",
-            "Final Presentation Structure"
-          ],
           "estimated_time": "3 hours",
-          "resources": [
+          "topics": [
             {
-              "type": "Article",
-              "label": "Data Analysis Portfolio Project Ideas",
-              "description": "Inspiration for a final project to verify learning.",
-              "resource_url": "https://www.dataquest.io/blog/data-science-portfolio-project/"
+              "title": "Data Analysis Capstone Project",
+              "description": "A capstone project that ties together every skill in the course: pick a public dataset that interests you, formulate two or three sharp analytical questions, and run a full analysis using whichever combination of Excel, SQL, Tableau, and Python feels right for each step. You will document your process in a notebook or report - what you asked, what you cleaned, what you found, what you would do next - and present your findings as if to a non-technical stakeholder. The deliverable is intentionally open-ended so you practice the judgment calls real analysts make: scoping the question, choosing the right tools, and structuring a story around the evidence rather than a dump of charts."
             }
           ]
         }

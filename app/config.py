@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     MAX_OUTPUT_TOKENS: int = Field(default=2048, gt=0)
     USE_MOCK_DATA: bool = Field(...)
 
+    # --- YouTube Data API ---
+    YOUTUBE_API_KEY: str = Field(default="")
+
     # --- Google Auth Settings ---
     GOOGLE_OAUTH2_CLIENT_ID: str = Field(...)
     GOOGLE_OAUTH2_CLIENT_SECRET: str = Field(...)

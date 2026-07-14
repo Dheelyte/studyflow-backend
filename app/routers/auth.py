@@ -100,9 +100,9 @@ async def login(
     5. Set the tokens as secure cookies on the response.
 
     **Error Responses:**
-    - `401 Unauthorized` — Incorrect credentials.
-    - `401 Unauthorized` — Account is inactive.
-    - `401 Unauthorized` — Email not verified (includes action hint).
+    - `401 Unauthorized` - Incorrect credentials.
+    - `401 Unauthorized` - Account is inactive.
+    - `401 Unauthorized` - Email not verified (includes action hint).
 
     **Returns:**
     - A success message indicating that login was successful.
@@ -140,9 +140,9 @@ async def refresh_token(
     5. Write the new access token back to cookies.
 
     **Error Responses:**
-    - `401 Unauthorized` — Refresh token missing.
-    - `401 Unauthorized` — Refresh token is invalid or expired.
-    - `401 Unauthorized` — User not found or inactive.
+    - `401 Unauthorized` - Refresh token missing.
+    - `401 Unauthorized` - Refresh token is invalid or expired.
+    - `401 Unauthorized` - User not found or inactive.
 
     **Returns:**
     - A success message confirming the access token has been renewed.
@@ -245,8 +245,8 @@ async def reset_password(
     4. Update the user's password and invalidate the reset token.
 
     **Error Responses:**
-    - `400 Bad Request` — Invalid or expired reset code.
-    - `400 Bad Request` — New password matches the old password.
+    - `400 Bad Request` - Invalid or expired reset code.
+    - `400 Bad Request` - New password matches the old password.
 
     **Returns:**
     - A success message once the password has been updated.

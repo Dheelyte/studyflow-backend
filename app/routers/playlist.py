@@ -3,7 +3,7 @@ from typing import Annotated
 
 from ..dependencies.auth import AuthUserDep
 from ..schema.playlist import PlaylistCreate, PlaylistResponse, PlaylistDetailSchema
-from ..schema.progress import UserPlaylistResponse, UserResourceProgressResponse
+from ..schema.progress import UserPlaylistResponse, UserTopicProgressResponse
 from ..db.session import db_session
 from ..schema.resource import Curriculum, CurriculumRequest
 from ..chains.generate_curriculum import generate_curriculum_response
@@ -19,8 +19,6 @@ router = APIRouter(
 async def generate_curriculum(request: Annotated[CurriculumRequest, Query()]):
     curriculum = await generate_curriculum_response(
         topic=request.topic,
-        experience_level=request.experience_level,
-        duration=request.duration
     )
     return curriculum
 
@@ -54,15 +52,15 @@ async def get_user_playlists(
     return playlists
 
 
-@router.post('/resource/{resource_id}/complete', response_model=UserResourceProgressResponse)
-async def mark_resource_completed(
-    resource_id: int,
+@router.post('/topics/{topic_id}/complete', response_model=UserTopicProgressResponse)
+async def mark_topic_completed(
+    topic_id: int,
     auth_user: AuthUserDep,
     playlist_service: PlaylistServiceDep
 ):
-    progress = await playlist_service.mark_resource_completed(resource_id, auth_user.id)
+    progress = await playlist_service.mark_topic_completed(topic_id, auth_user.id)
     if not progress:
-        raise HTTPException(status_code=404, detail="Resource not found")
+        raise HTTPException(status_code=404, detail="Topic not found")
     return progress
 
 
@@ -76,7 +74,6 @@ async def generate_quiz(
     quiz = await playlist_service.generate_module_quiz(
         module_id=module_id,
         curriculum_title=quiz_data.curriculum_title,
-        experience_level=quiz_data.experience_level
     )
     return quiz
 
@@ -90,20 +87,5 @@ async def submit_quiz(
 ):
     result = await playlist_service.submit_quiz(module_id, submission, auth_user.id)
     if not result:
-        # If quiz doesn't exist, maybe 404
         raise HTTPException(status_code=404, detail="Quiz not found")
     return result
-
-
-
-
-# @router.get('/modules/{module_id}/quiz', response_model=QuizResponse | None)
-# async def get_module_quiz(
-#     module_id: int,
-#     auth_user: AuthUserDep,
-#     playlist_service: PlaylistServiceDep
-# ):
-#     quiz = await playlist_service.get_quiz_by_module_id(module_id)
-#     if not quiz:
-#         raise HTTPException(status_code=404, detail="Quiz not found")
-#     return quiz

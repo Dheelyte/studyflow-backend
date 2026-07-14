@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.module import Module
 from app.models.playlist import Playlist
-from app.models.progress import UserPlaylist, UserResourceProgress, UserModuleProgress
-from app.models.resource import Resource
+from app.models.progress import UserPlaylist, UserTopicProgress, UserModuleProgress
+from app.models.topic import Topic
 from app.models.user import User
 from app.models.lesson import Lesson
 from app.models.quiz import Quiz
@@ -16,12 +16,12 @@ from app.models.quiz import Quiz
 class PlaylistRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
-    
+
     async def add(self, playlist_model):
         self.session.add(playlist_model)
         await self.session.flush()
         return playlist_model
-    
+
     async def get_playlist_by_id(self, playlist_id: int):
         stmt = (
             select(Playlist)
@@ -30,30 +30,30 @@ class PlaylistRepository:
         result = await self.session.execute(stmt)
         playlist = result.scalar_one_or_none()
         return playlist
-    
+
     async def get_user_playlists(self, user_id: UUID):
-        # Subquery for Total Resources per Playlist
-        total_resources_sub = (
+        # Subquery for Total Topics per Playlist
+        total_topics_sub = (
             select(
                 Module.playlist_id,
-                func.count(Resource.id).label('total_count')
+                func.count(Topic.id).label('total_count')
             )
             .join(Lesson, Lesson.module_id == Module.id)
-            .join(Resource, Resource.lesson_id == Lesson.id)
+            .join(Topic, Topic.lesson_id == Lesson.id)
             .group_by(Module.playlist_id)
             .subquery()
         )
 
-        # Subquery for Completed Resources per Playlist for this User
-        completed_resources_sub = (
+        # Subquery for Completed Topics per Playlist for this User
+        completed_topics_sub = (
             select(
                 Module.playlist_id,
-                func.count(UserResourceProgress.id).label('completed_count')
+                func.count(UserTopicProgress.id).label('completed_count')
             )
             .join(Lesson, Lesson.module_id == Module.id)
-            .join(Resource, Resource.lesson_id == Lesson.id)
-            .join(UserResourceProgress, (UserResourceProgress.resource_id == Resource.id) & (UserResourceProgress.user_id == user_id))
-            .where(UserResourceProgress.is_completed == True)
+            .join(Topic, Topic.lesson_id == Lesson.id)
+            .join(UserTopicProgress, (UserTopicProgress.topic_id == Topic.id) & (UserTopicProgress.user_id == user_id))
+            .where(UserTopicProgress.is_completed == True)
             .group_by(Module.playlist_id)
             .subquery()
         )
@@ -86,49 +86,34 @@ class PlaylistRepository:
         stmt = (
             select(
                 UserPlaylist,
-                func.coalesce(total_resources_sub.c.total_count, 0).label('total_resources'),
-                func.coalesce(completed_resources_sub.c.completed_count, 0).label('completed_resources'),
+                func.coalesce(total_topics_sub.c.total_count, 0).label('total_topics'),
+                func.coalesce(completed_topics_sub.c.completed_count, 0).label('completed_topics'),
                 func.coalesce(total_modules_sub.c.total_modules_count, 0).label('total_modules'),
                 func.coalesce(completed_modules_sub.c.completed_modules_count, 0).label('completed_modules')
             )
             .options(
                 selectinload(UserPlaylist.playlist)
-                .load_only(Playlist.id, Playlist.title, Playlist.level)
+                .load_only(Playlist.id, Playlist.title)
             )
-            .outerjoin(total_resources_sub, total_resources_sub.c.playlist_id == UserPlaylist.playlist_id)
-            .outerjoin(completed_resources_sub, completed_resources_sub.c.playlist_id == UserPlaylist.playlist_id)
+            .outerjoin(total_topics_sub, total_topics_sub.c.playlist_id == UserPlaylist.playlist_id)
+            .outerjoin(completed_topics_sub, completed_topics_sub.c.playlist_id == UserPlaylist.playlist_id)
             .outerjoin(total_modules_sub, total_modules_sub.c.playlist_id == UserPlaylist.playlist_id)
             .outerjoin(completed_modules_sub, completed_modules_sub.c.playlist_id == UserPlaylist.playlist_id)
             .where(UserPlaylist.user_id == user_id)
         )
         result = await self.session.execute(stmt)
         return result.all()
-    
-    async def get_all_playlist_resources(self, playlist_id: int):
+
+    async def get_all_playlist_topics(self, playlist_id: int):
         stmt = (
-            select(func.count(Resource.id))
-            .join(Module)
+            select(func.count(Topic.id))
+            .join(Lesson, Lesson.id == Topic.lesson_id)
+            .join(Module, Module.id == Lesson.module_id)
             .where(Module.playlist_id == playlist_id)
         )
         result = await self.session.execute(stmt)
-        total_resources = result.scalar_one()
-        return total_resources
-    
-    async def get_completed_resource_count(self, playlist_id: int, user_id: UUID):
-        stmt = (
-            select(func.count(UserResourceProgress.id))
-            .join(Resource)
-            .join(Module)
-            .where(
-                Module.playlist_id == playlist_id,
-                UserResourceProgress.user_id == user_id,
-                UserResourceProgress.is_completed == True
-            )
-        )
-        result = await self.session.execute(stmt)
-        completed_resources = result.scalar_one()
-        return completed_resources
-    
+        return result.scalar_one()
+
     async def get_user_playlist(self, playlist_id: int, user_id: int):
         result = await self.session.execute(
             select(UserPlaylist).where(
@@ -140,63 +125,58 @@ class PlaylistRepository:
         return user_playlist
 
     async def get_playlist_details(self, playlist_id: int, user_id: UUID):
-        # 1. Fetch Playlist with nested data
+        # 1. Fetch Playlist with nested data (modules → lessons → topics)
         stmt = (
             select(Playlist)
             .options(
                 selectinload(Playlist.modules)
                 .selectinload(Module.lessons)
-                .selectinload(Lesson.resources)
+                .selectinload(Lesson.topics)
             )
             .where(Playlist.id == playlist_id)
         )
         result = await self.session.execute(stmt)
         playlist = result.scalar_one_or_none()
-        
+
         if not playlist:
             return None
 
-        # 2. Fetch User's Completed Resources for this playlist
-        # This avoids N+1 queries for progress
+        # 2. Fetch User's Completed Topics for this playlist
         progress_stmt = (
-            select(UserResourceProgress.resource_id)
-            .join(Resource)
+            select(UserTopicProgress.topic_id)
+            .join(Topic)
             .join(Lesson)
             .join(Module)
             .where(
                 Module.playlist_id == playlist_id,
-                UserResourceProgress.user_id == user_id,
-                UserResourceProgress.is_completed == True
+                UserTopicProgress.user_id == user_id,
+                UserTopicProgress.is_completed == True
             )
         )
         progress_result = await self.session.execute(progress_stmt)
-        completed_resource_ids: Set[int] = set(progress_result.scalars().all())
+        completed_topic_ids: Set[int] = set(progress_result.scalars().all())
 
         # 3. Fetch User's Module Progress (for quiz_completed)
         module_progress_stmt = (
-             select(UserModuleProgress.module_id)
-             .join(Module)
-             .where(
-                 Module.playlist_id == playlist_id,
-                 UserModuleProgress.user_id == user_id,
-                 UserModuleProgress.quiz_completed == True
-             )
+            select(UserModuleProgress.module_id)
+            .join(Module)
+            .where(
+                Module.playlist_id == playlist_id,
+                UserModuleProgress.user_id == user_id,
+                UserModuleProgress.quiz_completed == True
+            )
         )
         module_progress_result = await self.session.execute(module_progress_stmt)
         quiz_completed_module_ids: Set[int] = set(module_progress_result.scalars().all())
 
-        # 4. Attach progress to resources and modules (in memory)
-        # We perform a traversal to set the is_completed flag
-        # Pydantic schema will pick this up if the attribute exists
+        # 4. Attach progress to topics and modules (in memory)
         for module in playlist.modules:
             setattr(module, 'quiz_completed', module.id in quiz_completed_module_ids)
             for lesson in module.lessons:
-                for resource in lesson.resources:
-                    # Dynamically set attribute - SQLAlchemy models are Python objects
-                    setattr(resource, 'is_completed', resource.id in completed_resource_ids)
-        
-        return playlist
+                for topic in lesson.topics:
+                    setattr(topic, 'is_completed', topic.id in completed_topic_ids)
 
+        return playlist
 
 
 class ModuleRepository:
@@ -207,7 +187,7 @@ class ModuleRepository:
         self.session.add(module)
         await self.session.flush()
         return module
-    
+
     async def get_module_by_id(self, module_id: int):
         result = await self.session.execute(
             select(Module)
@@ -215,46 +195,57 @@ class ModuleRepository:
         )
         module = result.scalar_one_or_none()
         return module
-    
-    async def get_module_resources_count(self, module_id: int) -> int:
+
+    async def get_module_topics_count(self, module_id: int) -> int:
+        """Count total topics in a module across all its lessons."""
         stmt = (
-            select(func.count(Resource.id))
+            select(func.count(Topic.id))
             .join(Lesson)
             .where(Lesson.module_id == module_id)
         )
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
-    async def get_module_completed_resources_count(self, module_id: int, user_id: UUID) -> int:
+    async def get_module_topic_titles(self, module_id: int) -> list[str]:
+        """Return all topic titles inside a module, ordered by lesson and topic order."""
         stmt = (
-            select(func.count(UserResourceProgress.id))
-            .join(Resource)
+            select(Topic.title)
+            .join(Lesson)
+            .where(Lesson.module_id == module_id)
+            .order_by(Lesson.order, Topic.order)
+        )
+        result = await self.session.execute(stmt)
+        return [row[0] for row in result.all()]
+
+    async def get_module_completed_topics_count(self, module_id: int, user_id: UUID) -> int:
+        """Count completed topics in a module for a user."""
+        stmt = (
+            select(func.count(UserTopicProgress.id))
+            .join(Topic)
             .join(Lesson)
             .where(
                 Lesson.module_id == module_id,
-                UserResourceProgress.user_id == user_id,
-                UserResourceProgress.is_completed == True
+                UserTopicProgress.user_id == user_id,
+                UserTopicProgress.is_completed == True
             )
         )
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
     async def mark_module_completed(self, module_id: int, user_id: UUID) -> UserModuleProgress:
-        # Check if already completed
         stmt = select(UserModuleProgress).where(
             UserModuleProgress.user_id == user_id,
             UserModuleProgress.module_id == module_id
         )
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
-        
+
         if existing:
             if not existing.is_completed:
                 existing.is_completed = True
                 await self.session.flush()
             return existing
-        
-        # Create new
+
         new_progress = UserModuleProgress(
             user_id=user_id,
             module_id=module_id,
@@ -271,13 +262,13 @@ class ModuleRepository:
         )
         result = await self.session.execute(stmt)
         existing = result.scalar_one_or_none()
-        
+
         if existing:
             if not existing.quiz_completed:
                 existing.quiz_completed = True
                 await self.session.flush()
             return existing
-            
+
         new_progress = UserModuleProgress(
             user_id=user_id,
             module_id=module_id,
@@ -286,33 +277,8 @@ class ModuleRepository:
         self.session.add(new_progress)
         await self.session.flush()
         return new_progress
-        
 
-class ResourceRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
 
-    async def add(self, resource_model):
-        self.session.add(resource_model)
-        await self.session.flush()
-        return resource_model
-
-    async def get_resource_by_id(self, resource_id: int):
-        result = await self.session.execute(select(Resource).where(Resource.id == resource_id))
-        resource = result.scalar_one_or_none()
-        return resource
-    
-    async def get_resource_progress(self, user_id, resource_id):
-        result = await self.session.execute(
-            select(UserResourceProgress).where(
-                UserResourceProgress.user_id == user_id,
-                UserResourceProgress.resource_id == resource_id
-            )
-        )
-        progress = result.scalar_one_or_none()
-        return progress
-    
-    
 class LessonRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -326,16 +292,6 @@ class LessonRepository:
         result = await self.session.execute(select(Lesson).where(Lesson.id == lesson_id))
         lesson = result.scalar_one_or_none()
         return lesson
-    
-    async def get_resource_progress(self, user_id, lesson_id):
-        result = await self.session.execute(
-            select(UserResourceProgress).where(
-                UserResourceProgress.user_id == user_id,
-                UserResourceProgress.resource_id == lesson_id
-            )
-        )
-        progress = result.scalar_one_or_none()
-        return progress
 
 
 class QuizRepository:

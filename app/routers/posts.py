@@ -42,13 +42,15 @@ async def list_community_posts(
 @router.get("/explore", response_model=List[PostResponse])
 async def get_explore_feed(
     post_service: PostServiceDep,
-    skip: int = 0, 
+    auth_user: OptionalAuthUserDep,
+    skip: int = 0,
     limit: int = 100
 ):
     """
     Public explore feed: returns latest posts from all communities.
     """
-    return await post_service.get_explore_feed(skip, limit)
+    user_id = auth_user.id if auth_user else None
+    return await post_service.get_explore_feed(skip, limit, user_id)
 
 
 @router.get("/{post_id}", response_model=PostResponse)

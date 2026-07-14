@@ -1,14 +1,13 @@
 from uuid import UUID
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
-from ..models.playlist import PlaylistLevel
 from ..models.progress import UserPlaylistStatus
 
 
 class UserPlaylistCreate(BaseModel):
     playlist_id: int
-    user_id: UUID4
+    user_id: UUID
 
 
 class UserPlaylistUpdate(BaseModel):
@@ -18,7 +17,6 @@ class UserPlaylistUpdate(BaseModel):
 class ListPlaylistResponse(BaseModel):
     id: int
     title: str
-    level: PlaylistLevel
 
 
 class PlaylistProgress(BaseModel):
@@ -37,8 +35,8 @@ class UserPlaylistResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserResourceProgressResponse(BaseModel):
-    resource_id: int
+class UserTopicProgressResponse(BaseModel):
+    topic_id: int
     is_completed: bool
     completed_at: datetime | None
 

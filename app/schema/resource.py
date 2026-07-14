@@ -2,22 +2,31 @@ from pydantic import BaseModel, Field
 from typing import List
 
 
-class Resource(BaseModel):
-    type: str = Field(..., description="Type of resource: Video, Article, etc.")
-    label: str = Field(..., description="Display title for the resource")
-    description: str
-    resource_url: str = Field(..., description="An up-to-date and valid URL to one of the most relevant live version of this resource, not a google search link, or a link to a paid course (e.g. Coursera, Udemy). Make sure the URL doesn't lead to a resource that does not exist anymore")
+class TopicOutput(BaseModel):
+    title: str = Field(..., description="Topic title")
+    description: str = Field(
+        ...,
+        description=(
+            "An in-depth, multi-sentence explanation of what this topic covers, "
+            "the key concepts the learner will understand, the prerequisites or "
+            "intuitions the learner should leave with, and how this topic connects "
+            "to the broader lesson and module. Should read as a substantive paragraph "
+            "of at least 3-5 sentences, not a short one-liner."
+        ),
+    )
+
 
 class Lesson(BaseModel):
     lesson_title: str
-    topics_covered: List[str]
     estimated_time: str
-    resources: List[Resource]
+    topics: List[TopicOutput]
+
 
 class Module(BaseModel):
     module_id: int
     module_title: str
     lessons: List[Lesson]
+
 
 class Curriculum(BaseModel):
     curriculum_title: str
@@ -25,23 +34,7 @@ class Curriculum(BaseModel):
     learning_objectives: List[str]
     modules: List[Module]
 
+
 # Input model for the user request
 class CurriculumRequest(BaseModel):
     topic: str
-    experience_level: str = "Beginner"
-    duration: str = "4 weeks"
-
-
-# class ResourceCreate(ResourceBase):
-#     module_id: int
-
-# class ResourceUpdate(ResourceBase):
-#     pass
-
-# class ResourceResponse(ResourceBase):
-#     id: int
-#     module_id: int
-    
-#     class Config:
-#         from_attributes = True
-        

@@ -48,7 +48,20 @@ class UserModuleProgress(Base):
     module_id: Mapped[int] = mapped_column(ForeignKey('modules.id'))
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     quiz_completed: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     __table_args__ = (
         UniqueConstraint('user_id', 'module_id', name='unique_user_module_progress'),
+    )
+
+
+class UserTopicProgress(Base):
+    __tablename__ = 'user_topic_progress'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
+    topic_id: Mapped[int] = mapped_column(ForeignKey('topics.id'))
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'topic_id', name='unique_user_topic_progress'),
     )

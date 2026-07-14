@@ -14,3 +14,4 @@ class Lesson(Base):
 
     module = relationship("Module", back_populates="lessons")
     resources = relationship("Resource", back_populates="lesson", cascade="all, delete-orphan")
+    topics = relationship("Topic", back_populates="lesson", cascade="all, delete-orphan")

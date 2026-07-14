@@ -35,7 +35,7 @@ Return a single JSON object with a key "quiz" containing an array of objects. Ea
 ### QUIZ DETAILS
 - Target Audience Level: {experience_level}
 - Topic: {topic}
-- Sub-Topics: {topics_covered}
+- Sub-Topics: {topic_titles}
 - Number of Questions: {num_questions}
 
 ### INSTRUCTION

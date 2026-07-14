@@ -28,13 +28,21 @@ class CommentService:
         post = await self.post_repo.get_by_id(comment_data.post_id)
         if not post:
             raise NotFoundError("Post not found")
-            
+
         new_comment = Comment(
             content=comment_data.content,
             post_id=comment_data.post_id,
             user_id=user_id
         )
-        return await self.comment_repo.create(new_comment)
+        await self.comment_repo.create(new_comment)
+        user = await self.user_repo.get_by_id(user_id)
+        if user:
+            setattr(
+                new_comment,
+                "user_name",
+                f"{user.first_name} {user.last_name}".strip(),
+            )
+        return new_comment
     
     async def get_comment(self, comment_id: int) -> Comment:
         comment = await self.comment_repo.get_by_id(comment_id)

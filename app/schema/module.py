@@ -5,7 +5,6 @@ from typing import Optional
 class ModuleBase(BaseModel):
     title: str
     description: str
-    topics_covered: list[str]
     order: int
 
 

@@ -63,7 +63,7 @@ async def change_password(
     3. Update the user's password in the database.
 
     **Error Responses:**
-    - `400 Bad Request` — Old password does not match.
+    - `400 Bad Request` - Old password does not match.
 
     **Returns:**
     - A success message confirming the password has been updated.

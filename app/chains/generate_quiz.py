@@ -46,7 +46,7 @@ def create_generate_quiz_chain():
     user_template = """### QUIZ DETAILS
     - Target Audience Level: {experience_level}
     - Topic: {curriculum_title}
-    - Sub-Topics: {topics_covered}
+    - Sub-Topics: {topic_titles}
     - Number of Questions: {num_questions}
 
     ### INSTRUCTION
@@ -67,7 +67,7 @@ def create_generate_quiz_chain():
 async def generate_quiz_response(
     curriculum_title: str,
     experience_level: str,
-    topics_covered: list[str],
+    topic_titles: list[str],
 ):
     if USE_MOCK_DATA:
         return load_mock_quiz()
@@ -77,7 +77,7 @@ async def generate_quiz_response(
         result = await chain.ainvoke({
             "curriculum_title": curriculum_title,
             "experience_level": experience_level,
-            "topics_covered": topics_covered,
+            "topic_titles": topic_titles,
             "num_questions": settings.QUIZ_NUM_QUESTIONS,
         })
         print(result)
