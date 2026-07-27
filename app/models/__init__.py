@@ -14,6 +14,7 @@ from .quiz import Quiz
 from .waitlist import Waitlist
 from .chat import ChatSession, ChatMessage
 from .certificate import Certificate
+from .project import Project, UserProjectProgress
 
 
 # This ensures all models are loaded before create_all() is called

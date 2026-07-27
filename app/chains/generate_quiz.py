@@ -5,7 +5,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 
 from ..config import settings, load_google_llm
 from ..schema.quiz import QuizBase
-from ..config import settings
 
 USE_MOCK_DATA = settings.USE_MOCK_DATA
 
@@ -16,10 +15,6 @@ def create_generate_quiz_chain():
     format_instructions = parser.get_format_instructions()
 
     system_message = """### SYSTEM ROLE & OBJECTIVE
-    You are an Expert Instructional Designer and Assessment Specialist. Your goal is to generate a high-quality, rigorous quiz based on specific topics and a target experience level.
-
-    
-    ### SYSTEM ROLE & OBJECTIVE
     You are an Expert Instructional Designer and Assessment Specialist. Your goal is to generate a high-quality, rigorous quiz based on specific topics and a target experience level.
 
     ### GENERATION CONSTRAINTS

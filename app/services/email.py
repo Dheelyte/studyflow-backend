@@ -36,7 +36,7 @@ class EmailService:
         conf.TEMPLATE_FOLDER = settings.TEMPLATE_FOLDER
         
         message = MessageSchema(
-            subject="Welcome to Primerly!",
+            subject=f"Welcome to {settings.APP_NAME}!",
             recipients=[user.email],
             template_body=template_body,
             subtype=MessageType.html,
@@ -55,5 +55,32 @@ class EmailService:
             if settings.MAIL_SERVER == "test":
                 print("[DEBUG] Mock Welcome Email Sent")
             return
-                 
+
         await fm.send_message(message, template_name="welcome_email.html")
+
+    @staticmethod
+    async def send_password_reset_email(user, code: str):
+        template_body = {
+            "name": user.first_name or "",
+            "code": code,
+            "expires_minutes": settings.PASSWORD_RESET_CODE_EXPIRE_MINUTES,
+        }
+
+        conf.TEMPLATE_FOLDER = settings.TEMPLATE_FOLDER
+
+        message = MessageSchema(
+            subject=f"Reset your {settings.APP_NAME} password",
+            recipients=[user.email],
+            template_body=template_body,
+            subtype=MessageType.html,
+        )
+
+        fm = FastMail(conf)
+
+        if settings.ENVIRONMENT == "dev":
+            print(f"[DEBUG] Sending Password Reset Email to {user.email} (code: {code})")
+            if settings.MAIL_SERVER == "test":
+                print("[DEBUG] Mock Password Reset Email Sent")
+            return
+
+        await fm.send_message(message, template_name="password_reset_email.html")

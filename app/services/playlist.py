@@ -19,6 +19,7 @@ from ..schema.playlist import PlaylistCreate
 from ..models.progress import UserTopicProgress, UserPlaylist
 from ..schema.progress import UserPlaylistResponse, PlaylistProgress, ListPlaylistResponse
 from ..services.activity import ActivityService, get_activity_service
+from ..utils.slug import generate_unique_slug
 from ..schema.quiz import QuizSubmission, QuizSubmissionResponse, QuizBase
 from ..chains.generate_quiz import generate_quiz_response
 
@@ -79,6 +80,8 @@ class PlaylistService:
                 playlist=ListPlaylistResponse(
                     id=user_playlist.playlist.id,
                     title=user_playlist.playlist.title,
+                    slug=user_playlist.playlist.slug,
+                    level=getattr(user_playlist.playlist.level, 'value', user_playlist.playlist.level),
                 ),
                 progress=PlaylistProgress(
                     completed_modules=record.completed_modules,
@@ -93,6 +96,8 @@ class PlaylistService:
     async def create_playlist_from_curriculum(self, playlist_data: PlaylistCreate, user_id: UUID) -> Playlist:
         if playlist_data.content:
             # 1. Create Playlist Object
+            # Every playlist gets a slug at creation — course URLs are slug-based
+            # whether or not the course is ever published to the gallery.
             new_playlist = Playlist(
                 title=playlist_data.title,
                 level="Beginner",
@@ -100,6 +105,7 @@ class PlaylistService:
                 description=playlist_data.description,
                 objectives=playlist_data.objectives,
                 user_id=user_id,
+                slug=await generate_unique_slug(self.playlist_repo, playlist_data.title),
             )
             new_playlist = await self.playlist_repo.add(new_playlist)
 

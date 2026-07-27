@@ -1,6 +1,6 @@
-# StudyFlow Backend
+# Primerly Backend
 
-The backend service for StudyFlow, an AI-powered personalized learning platform. This service manages user authentication, curriculum generation using Google Gemini, playlist management, and community interactions.
+The backend service for Primerly, an AI-powered platform for learning tech and digital skills. This service manages user authentication, curriculum generation using Google Gemini, playlist management, and community interactions.
 
 ## 🚀 Features
 

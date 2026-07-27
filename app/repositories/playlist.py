@@ -93,7 +93,7 @@ class PlaylistRepository:
             )
             .options(
                 selectinload(UserPlaylist.playlist)
-                .load_only(Playlist.id, Playlist.title)
+                .load_only(Playlist.id, Playlist.title, Playlist.slug, Playlist.level)
             )
             .outerjoin(total_topics_sub, total_topics_sub.c.playlist_id == UserPlaylist.playlist_id)
             .outerjoin(completed_topics_sub, completed_topics_sub.c.playlist_id == UserPlaylist.playlist_id)
@@ -123,6 +123,163 @@ class PlaylistRepository:
         )
         user_playlist = result.scalar_one_or_none()
         return user_playlist
+
+    def _gallery_count_subqueries(self):
+        """Module, lesson, topic and learner counts keyed by playlist_id, for gallery cards."""
+        module_counts = (
+            select(
+                Module.playlist_id,
+                func.count(Module.id).label('module_count')
+            )
+            .group_by(Module.playlist_id)
+            .subquery()
+        )
+
+        lesson_counts = (
+            select(
+                Module.playlist_id,
+                func.count(Lesson.id).label('lesson_count')
+            )
+            .join(Lesson, Lesson.module_id == Module.id)
+            .group_by(Module.playlist_id)
+            .subquery()
+        )
+
+        topic_counts = (
+            select(
+                Module.playlist_id,
+                func.count(Topic.id).label('topic_count')
+            )
+            .join(Lesson, Lesson.module_id == Module.id)
+            .join(Topic, Topic.lesson_id == Lesson.id)
+            .group_by(Module.playlist_id)
+            .subquery()
+        )
+
+        learner_counts = (
+            select(
+                UserPlaylist.playlist_id,
+                func.count(UserPlaylist.id).label('learner_count')
+            )
+            .group_by(UserPlaylist.playlist_id)
+            .subquery()
+        )
+
+        return module_counts, lesson_counts, topic_counts, learner_counts
+
+    async def get_public_playlists(
+        self,
+        limit: int = 24,
+        offset: int = 0,
+        featured_only: bool = False,
+    ):
+        module_counts, lesson_counts, topic_counts, learner_counts = self._gallery_count_subqueries()
+
+        learner_count_col = func.coalesce(learner_counts.c.learner_count, 0)
+
+        stmt = (
+            select(
+                Playlist,
+                func.coalesce(module_counts.c.module_count, 0).label('module_count'),
+                func.coalesce(lesson_counts.c.lesson_count, 0).label('lesson_count'),
+                func.coalesce(topic_counts.c.topic_count, 0).label('topic_count'),
+                learner_count_col.label('learner_count'),
+            )
+            .options(
+                selectinload(Playlist.author)
+                .load_only(User.first_name, User.last_name)
+            )
+            .outerjoin(module_counts, module_counts.c.playlist_id == Playlist.id)
+            .outerjoin(lesson_counts, lesson_counts.c.playlist_id == Playlist.id)
+            .outerjoin(topic_counts, topic_counts.c.playlist_id == Playlist.id)
+            .outerjoin(learner_counts, learner_counts.c.playlist_id == Playlist.id)
+            .where(Playlist.is_public.is_(True), Playlist.slug.isnot(None))
+            .order_by(
+                Playlist.is_featured.desc(),
+                learner_count_col.desc(),
+                Playlist.published_at.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+
+        if featured_only:
+            stmt = stmt.where(Playlist.is_featured.is_(True))
+
+        result = await self.session.execute(stmt)
+        return result.all()
+
+    async def get_public_playlist_by_slug(self, slug: str):
+        """Full nested outline for a published course. Returns None if not public."""
+        stmt = (
+            select(Playlist)
+            .options(
+                selectinload(Playlist.modules)
+                .selectinload(Module.lessons)
+                .selectinload(Lesson.topics),
+                selectinload(Playlist.author)
+                .load_only(User.first_name, User.last_name),
+            )
+            .where(Playlist.slug == slug, Playlist.is_public.is_(True))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_playlist_counts(self, playlist_id: int):
+        """(module_count, lesson_count, topic_count, learner_count) for a single playlist."""
+        module_counts, lesson_counts, topic_counts, learner_counts = self._gallery_count_subqueries()
+
+        stmt = (
+            select(
+                func.coalesce(module_counts.c.module_count, 0),
+                func.coalesce(lesson_counts.c.lesson_count, 0),
+                func.coalesce(topic_counts.c.topic_count, 0),
+                func.coalesce(learner_counts.c.learner_count, 0),
+            )
+            .select_from(Playlist)
+            .outerjoin(module_counts, module_counts.c.playlist_id == Playlist.id)
+            .outerjoin(lesson_counts, lesson_counts.c.playlist_id == Playlist.id)
+            .outerjoin(topic_counts, topic_counts.c.playlist_id == Playlist.id)
+            .outerjoin(learner_counts, learner_counts.c.playlist_id == Playlist.id)
+            .where(Playlist.id == playlist_id)
+        )
+        result = await self.session.execute(stmt)
+        row = result.first()
+        return row if row else (0, 0, 0, 0)
+
+    async def get_public_playlist_id_by_slug(self, slug: str) -> int | None:
+        stmt = (
+            select(Playlist.id)
+            .where(Playlist.slug == slug, Playlist.is_public.is_(True))
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def resolve_playlist_id(self, ref: str) -> int | None:
+        """Accept either a numeric id or a slug, so old numeric URLs keep working."""
+        if isinstance(ref, int):
+            return ref
+        if isinstance(ref, str) and ref.isdigit():
+            return int(ref)
+
+        stmt = select(Playlist.id).where(Playlist.slug == ref)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def slug_exists(self, slug: str) -> bool:
+        stmt = select(Playlist.id).where(Playlist.slug == slug).limit(1)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none() is not None
+
+    async def get_public_slugs(self, limit: int = 1000):
+        stmt = (
+            select(Playlist.slug, Playlist.published_at)
+            .where(Playlist.is_public.is_(True), Playlist.slug.isnot(None))
+            .order_by(Playlist.published_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return result.all()
 
     async def get_playlist_details(self, playlist_id: int, user_id: UUID):
         # 1. Fetch Playlist with nested data (modules → lessons → topics)

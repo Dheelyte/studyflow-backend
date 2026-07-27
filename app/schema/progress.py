@@ -17,6 +17,8 @@ class UserPlaylistUpdate(BaseModel):
 class ListPlaylistResponse(BaseModel):
     id: int
     title: str
+    slug: str | None = None
+    level: str | None = None
 
 
 class PlaylistProgress(BaseModel):

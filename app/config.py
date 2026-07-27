@@ -9,6 +9,9 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    # --- Branding ---
+    APP_NAME: str = Field(default="Primerly")
+
     # --- Infrastructure & Environment ---
     ENVIRONMENT: str = Field(
         default="dev",

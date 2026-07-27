@@ -20,6 +20,8 @@ class PlaylistResponse(BaseModel):
     objectives: list[str] | None
     user_id: UUID
     created_at: datetime
+    is_public: bool = False
+    slug: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

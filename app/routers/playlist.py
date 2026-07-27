@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Annotated
 
 from ..dependencies.auth import AuthUserDep
+from ..dependencies.playlist import PlaylistIdDep
 from ..schema.playlist import PlaylistCreate, PlaylistResponse, PlaylistDetailSchema
 from ..schema.progress import UserPlaylistResponse, UserTopicProgressResponse
 from ..db.session import db_session
@@ -33,9 +34,9 @@ async def create_playlist(
     return new_playlist
 
 
-@router.get('/playlists/{playlist_id}', response_model=PlaylistDetailSchema)
+@router.get('/playlists/{playlist_ref}', response_model=PlaylistDetailSchema)
 async def get_playlist(
-    playlist_id: int,
+    playlist_id: PlaylistIdDep,
     auth_user: AuthUserDep,
     playlist_service: PlaylistServiceDep
 ):

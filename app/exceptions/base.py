@@ -15,6 +15,10 @@ class UnauthorizedError(Exception):
 class NotFoundError(Exception):
     pass
 
+class ForbiddenError(Exception):
+    """Authenticated, but not allowed to act on this resource."""
+    pass
+
 
 async def bad_request_handler(request: Request, exc: BadRequestError):
     return JSONResponse(
@@ -34,8 +38,16 @@ async def notfound_request_handler(request: Request, exc: NotFoundError):
         content={"detail": str(exc)},
     )
 
+async def forbidden_request_handler(request: Request, exc: ForbiddenError):
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={"detail": str(exc)},
+    )
+
 
 def register_app_exceptions(app: FastAPI):
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(BadRequestError, bad_request_handler)
     app.add_exception_handler(UnauthorizedError, unauthorized_request_handler)
+    app.add_exception_handler(NotFoundError, notfound_request_handler)
+    app.add_exception_handler(ForbiddenError, forbidden_request_handler)

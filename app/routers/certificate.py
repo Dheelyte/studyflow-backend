@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from ..db.session import db_session
 from ..dependencies.auth import AuthUserDep
+from ..dependencies.playlist import PlaylistIdDep
 from ..schema.certificate import (
     CertificateEligibility,
     CertificatePublic,
@@ -14,11 +15,11 @@ router = APIRouter(tags=["Certificates"], dependencies=[Depends(db_session)])
 
 
 @router.get(
-    "/playlists/{playlist_id}/certificate",
+    "/playlists/{playlist_ref}/certificate",
     response_model=CertificateEligibility,
 )
 async def get_playlist_certificate_status(
-    playlist_id: int,
+    playlist_id: PlaylistIdDep,
     auth_user: AuthUserDep,
     service: CertificateServiceDep,
 ):
@@ -26,11 +27,11 @@ async def get_playlist_certificate_status(
 
 
 @router.post(
-    "/playlists/{playlist_id}/certificate",
+    "/playlists/{playlist_ref}/certificate",
     response_model=CertificateRead,
 )
 async def issue_playlist_certificate(
-    playlist_id: int,
+    playlist_id: PlaylistIdDep,
     auth_user: AuthUserDep,
     service: CertificateServiceDep,
 ):

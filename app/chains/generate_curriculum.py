@@ -21,6 +21,9 @@ def create_generate_curriculum_chain():
     You are an expert Instructional Designer and Subject Matter Expert. Your task is to design a high-quality, structured learning roadmap for a learner who wants to learn the following:
     - Topic: {topic}
 
+    ### Audience Context
+    Primerly's learners are primarily people building tech and digital skills - software development, data, design, cloud, cybersecurity, digital marketing. When the topic is technical, emphasize hands-on practice, tooling, and project-based progression. Still produce a high-quality roadmap for any topic you are given.
+
     ### Constraints & Quality Standards
     1. Scalability: Organize the roadmap into logical 'Modules' and 'Lessons'.
     2. Topic Design: Each lesson must contain a list of 'Topics'. Each topic is a focused learning unit with a 'title' and 'description'. The title should be specific enough to find a relevant educational YouTube video for it. The description should explain what the learner will understand after studying it.
@@ -30,7 +33,7 @@ def create_generate_curriculum_chain():
     ### Naming Constraints for 'curriculum_title'
     - Must be a concise 'Short-Form' title (max 4 words).
     - PROHIBITED: Do not include subtitles, colons, or catchphrases.
-    - GOOD: "React.js", "Python Programming", "Data Analysis"
+    - GOOD: "React.js", "Python Programming", "Data Analysis", "UI/UX Design", "DevOps"
     - BAD: "React Foundations", "Python Programming: A Complete Guide to Hooks"
 
     ### Output Schema

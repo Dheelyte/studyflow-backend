@@ -213,11 +213,7 @@ class PasswordResetService:
         await self.reset_repo.invalidate_unused_verification_codes(user)
 
     async def _send_password_reset_email(self, user: User, code: str):
-        await EmailService.send_email(
-            recipients=[user.email],
-            subject="Reset your password",
-            body=f"Password reset code: {code} for {user.email}",
-        )
+        await EmailService.send_password_reset_email(user, code)
 
 
 def get_reset_repo(session: AsyncSession = Depends(get_session)) -> PasswordResetRepository:

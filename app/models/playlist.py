@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import enum
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Enum, Integer, String, DateTime, ForeignKey, JSON, UUID, func
+from sqlalchemy import Boolean, Enum, Integer, String, DateTime, ForeignKey, JSON, UUID, func
 
 from .base import Base
 
@@ -26,4 +26,11 @@ class Playlist(Base):
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # Gallery publishing — opt-in, author-controlled. is_featured is set by us, not users.
+    is_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    slug: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     modules = relationship("Module", back_populates="playlist", cascade="all, delete-orphan")
+    author = relationship("User", lazy="raise")
