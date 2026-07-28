@@ -15,6 +15,7 @@ from .waitlist import Waitlist
 from .chat import ChatSession, ChatMessage
 from .certificate import Certificate
 from .project import Project, UserProjectProgress
+from .screen_tutor import ScreenTutorUsage
 
 
 # This ensures all models are loaded before create_all() is called

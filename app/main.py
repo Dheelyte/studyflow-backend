@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 from .config import settings
 from .middlewares.security import AllowedHostMiddlware
 from .middlewares.utils import TimingMiddleware
-from .routers import auth, users, playlist, comments, communities, posts, waitlist, topics, chat, certificate, gallery, project
+from .routers import auth, users, playlist, comments, communities, posts, waitlist, topics, chat, certificate, gallery, project, screen_tutor
 from .schema.base import CustomValidationErrorSchema
 from .exceptions.base import register_app_exceptions
 
@@ -56,6 +56,7 @@ app.include_router(certificate.public_router, prefix=API_V1_STR)
 app.include_router(gallery.router, prefix=API_V1_STR)
 app.include_router(gallery.public_router, prefix=API_V1_STR)
 app.include_router(project.router, prefix=API_V1_STR)
+app.include_router(screen_tutor.router, prefix=API_V1_STR)
 
 register_app_exceptions(app)
 

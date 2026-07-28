@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     VALIDATE_CERTS: bool = Field(default=True)
     TEMPLATE_FOLDER: str = Field(default="app/templates")
 
+    # --- Screen Tutor ---
+    SCREEN_TUTOR_DAILY_LIMIT: int = Field(default=20, gt=0)
+
     # --- LLM Settings (Required) ---
     GEMINI_MODEL: str = Field(default="")
     GOOGLE_API_KEY: str = Field(...)
