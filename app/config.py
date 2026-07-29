@@ -1,3 +1,5 @@
+import asyncio
+import weakref
 from functools import lru_cache
 from typing import List
 
@@ -111,8 +113,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-@lru_cache
-def load_google_llm():
+def _build_google_llm():
     return ChatGoogleGenerativeAI(
         model=settings.GEMINI_MODEL,
         google_api_key=settings.GOOGLE_API_KEY,
@@ -120,3 +121,30 @@ def load_google_llm():
         max_output_tokens=settings.MAX_OUTPUT_TOKENS,
         convert_system_message_to_human=True
     )
+
+
+# The client holds an httpx.AsyncClient bound to the event loop it was built on,
+# so it cannot be a process-wide singleton: under Lambda, Mangum runs each
+# invocation in its own asyncio.run() and closes the loop afterwards, which left
+# a warm container reusing a dead client ("Event loop is closed") on every
+# request after the first. Keying the cache on the running loop keeps one client
+# per invocation there, while a long-lived server (uvicorn) has a single loop and
+# so still reuses one client for the life of the process. Weak keys let the entry
+# go when the loop is collected.
+_llm_by_loop: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, ChatGoogleGenerativeAI]" = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def load_google_llm():
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Called from sync code: no loop to bind to, so don't cache it.
+        return _build_google_llm()
+
+    llm = _llm_by_loop.get(loop)
+    if llm is None:
+        llm = _build_google_llm()
+        _llm_by_loop[loop] = llm
+    return llm
