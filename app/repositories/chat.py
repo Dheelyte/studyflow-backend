@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import select, delete
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.chat import ChatSession, ChatMessage, ChatRole
@@ -23,9 +24,28 @@ class ChatRepository:
         existing = await self.get_session(user_id, topic_id)
         if existing:
             return existing
-        chat_session = ChatSession(user_id=user_id, topic_id=topic_id)
-        self.session.add(chat_session)
-        await self.session.flush()
+
+        # Concurrent requests for the same topic (the session GET racing the
+        # first send, a remount, a second tab) can both miss the select above,
+        # so let Postgres arbitrate the insert rather than raising a unique
+        # violation on unique_user_topic_chat_session.
+        result = await self.session.execute(
+            pg_insert(ChatSession)
+            .values(user_id=user_id, topic_id=topic_id)
+            .on_conflict_do_nothing(constraint="unique_user_topic_chat_session")
+            .returning(ChatSession.id)
+        )
+        new_id = result.scalar_one_or_none()
+        if new_id is not None:
+            return await self.session.get_one(ChatSession, new_id)
+
+        # Lost the race: the winner's row is committed by the time DO NOTHING
+        # returns, so this select is guaranteed to find it.
+        chat_session = await self.get_session(user_id, topic_id)
+        if chat_session is None:
+            raise RuntimeError(
+                f"Chat session for user={user_id} topic={topic_id} vanished after upsert"
+            )
         return chat_session
 
     async def list_messages(self, session_id: int) -> list[ChatMessage]:
