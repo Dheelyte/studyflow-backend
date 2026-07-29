@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
+from mangum.adapter import DEFAULT_TEXT_MIME_TYPES
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -65,4 +66,9 @@ async def health_status():
     return {"status": "healthy"}
 
 
-handler = Mangum(app)
+# NDJSON is not in Mangum's default text mime types, so without this the chat
+# and screen-tutor streams get base64-encoded with isBase64Encoded=true — which
+# our gateway passes through raw, leaving the browser a single base64 line the
+# client's newline-splitting parser can never render. Passing text_mime_types
+# replaces the defaults, so re-include them.
+handler = Mangum(app, text_mime_types=[*DEFAULT_TEXT_MIME_TYPES, "application/x-ndjson"])
