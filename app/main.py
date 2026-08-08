@@ -3,20 +3,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from mangum.adapter import DEFAULT_TEXT_MIME_TYPES
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
 from .config import settings
 from .middlewares.security import AllowedHostMiddlware
 from .middlewares.utils import TimingMiddleware
-from .routers import auth, users, playlist, comments, communities, posts, waitlist, topics, chat, certificate, gallery, project, screen_tutor
+from .rate_limit import limiter
+from .routers import auth, users, playlist, comments, communities, posts, waitlist, topics, chat, certificate, gallery, project, screen_tutor, billing
 from .schema.base import CustomValidationErrorSchema
 from .exceptions.base import register_app_exceptions
-
-
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
 app = FastAPI(
     title=f"{settings.APP_NAME} API",
@@ -58,6 +55,8 @@ app.include_router(gallery.router, prefix=API_V1_STR)
 app.include_router(gallery.public_router, prefix=API_V1_STR)
 app.include_router(project.router, prefix=API_V1_STR)
 app.include_router(screen_tutor.router, prefix=API_V1_STR)
+app.include_router(billing.router, prefix=API_V1_STR)
+app.include_router(billing.webhook_router, prefix=API_V1_STR)
 
 register_app_exceptions(app)
 
@@ -67,7 +66,7 @@ async def health_status():
 
 
 # NDJSON is not in Mangum's default text mime types, so without this the chat
-# and screen-tutor streams get base64-encoded with isBase64Encoded=true — which
+# and screen-tutor streams get base64-encoded with isBase64Encoded=true , which
 # our gateway passes through raw, leaving the browser a single base64 line the
 # client's newline-splitting parser can never render. Passing text_mime_types
 # replaces the defaults, so re-include them.

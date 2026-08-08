@@ -173,7 +173,7 @@ class ChatService:
         )
 
         # Emit the user message immediately so the client can swap the optimistic
-        # row right away — don't wait for transcript / history fetches.
+        # row right away , don't wait for transcript / history fetches.
         yield {
             "type": "user_message",
             "message": ChatMessageRead.model_validate(user_msg).model_dump(mode="json"),

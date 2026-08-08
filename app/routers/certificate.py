@@ -46,7 +46,7 @@ async def list_my_certificates(
     return await service.list_for_user(auth_user.id)
 
 
-# Public verification — no auth required so external recipients can verify.
+# Public verification , no auth required so external recipients can verify.
 public_router = APIRouter(tags=["Certificates"], dependencies=[Depends(db_session)])
 
 

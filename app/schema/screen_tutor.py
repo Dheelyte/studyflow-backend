@@ -10,7 +10,7 @@ class AnswerStyle(str, Enum):
 
 class ScreenAskRequest(BaseModel):
     # A data URL (data:image/jpeg;base64,...). The frame is forwarded to the model
-    # and then dropped — it is never persisted.
+    # and then dropped , it is never persisted.
     image: str = Field(min_length=32)
     # Optional crop of the area the learner highlighted, at native resolution.
     region_image: str | None = Field(default=None, min_length=32)

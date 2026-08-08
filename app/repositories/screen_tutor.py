@@ -68,7 +68,7 @@ class ScreenTutorRepository:
     async def get_pin_targets(self, playlist_id: int):
         """Lessons and already-generated projects the learner can point the tutor at.
 
-        Projects are listed only if they already exist — this must never trigger
+        Projects are listed only if they already exist , this must never trigger
         brief generation as a side effect of opening a dropdown.
         """
         topics_stmt = (

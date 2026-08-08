@@ -6,6 +6,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.session import get_session
+from ..exceptions.base import NotFoundError
 from ..models.lesson import Lesson
 from ..models.playlist import Playlist
 from ..models.module import Module
@@ -51,6 +52,13 @@ class PlaylistService:
 
     async def get_playlist_details(self, playlist_id: int, user_id: UUID):
         playlist = await self.playlist_repo.get_playlist_details(playlist_id, user_id)
+        if not playlist:
+            return None
+        # Private courses are visible only to their author and enrolled learners.
+        if not playlist.is_public and playlist.user_id != user_id:
+            enrollment = await self.playlist_repo.get_user_playlist(playlist_id, user_id)
+            if not enrollment:
+                raise NotFoundError("Course not found")
         return playlist
 
     async def create_user_playlist(self, playlist_id: int, user_id: UUID):
@@ -96,11 +104,11 @@ class PlaylistService:
     async def create_playlist_from_curriculum(self, playlist_data: PlaylistCreate, user_id: UUID) -> Playlist:
         if playlist_data.content:
             # 1. Create Playlist Object
-            # Every playlist gets a slug at creation — course URLs are slug-based
+            # Every playlist gets a slug at creation , course URLs are slug-based
             # whether or not the course is ever published to the gallery.
             new_playlist = Playlist(
                 title=playlist_data.title,
-                level="Beginner",
+                level=(playlist_data.level or "beginner").capitalize(),
                 timeline="",
                 description=playlist_data.description,
                 objectives=playlist_data.objectives,

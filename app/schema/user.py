@@ -48,7 +48,8 @@ class UserRead(BaseModel):
     longest_streak: int
     last_active_date: datetime | None
     total_xp: int = 0
-    
+    plan: str = "free"
+
     @computed_field
     @property
     def level(self) -> int:

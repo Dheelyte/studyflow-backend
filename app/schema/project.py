@@ -52,7 +52,7 @@ class ProjectRead(BaseModel):
 
 
 class ProjectSummary(BaseModel):
-    """Public-safe teaser for the course page — no brief, no requirements."""
+    """Public-safe teaser for the course page , no brief, no requirements."""
 
     title: str
     summary: str

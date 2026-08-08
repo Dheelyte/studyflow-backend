@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Literal
 
 
 class TopicOutput(BaseModel):
@@ -38,3 +38,6 @@ class Curriculum(BaseModel):
 # Input model for the user request
 class CurriculumRequest(BaseModel):
     topic: str
+    # Customization , what makes a generated course "custom" vs. a library course.
+    duration_weeks: int | None = Field(default=None, ge=1, le=12)
+    level: Literal["beginner", "intermediate", "advanced"] | None = None

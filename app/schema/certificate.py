@@ -17,7 +17,7 @@ class CertificateRead(BaseModel):
 
 
 class CertificatePublic(BaseModel):
-    """Public view exposed by verification — no user_id leaked."""
+    """Public view exposed by verification , no user_id leaked."""
     playlist_title: str
     playlist_id: int
     recipient_name: str

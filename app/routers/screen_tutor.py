@@ -29,7 +29,7 @@ async def get_screen_tutor_status(
     service: ScreenTutorServiceDep,
 ):
     """Remaining screen questions for today."""
-    return await service.get_status(auth_user.id)
+    return await service.get_status(auth_user)
 
 
 @router.post("/screen-tutor/ask")
@@ -44,7 +44,7 @@ async def ask_about_screen(
     """
 
     async def event_stream():
-        async for event in service.ask_stream(auth_user.id, body):
+        async for event in service.ask_stream(auth_user, body):
             yield (json.dumps(event, default=str) + "\n").encode("utf-8")
 
     return StreamingResponse(

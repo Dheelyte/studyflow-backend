@@ -16,6 +16,7 @@ from .chat import ChatSession, ChatMessage
 from .certificate import Certificate
 from .project import Project, UserProjectProgress
 from .screen_tutor import ScreenTutorUsage
+from .billing import Subscription, UsageCounter, PaymentTransaction
 
 
 # This ensures all models are loaded before create_all() is called
@@ -40,4 +41,7 @@ __all__ = [
     "ChatSession",
     "ChatMessage",
     "Certificate",
+    "Subscription",
+    "UsageCounter",
+    "PaymentTransaction",
 ]

@@ -172,6 +172,7 @@ class PlaylistRepository:
         limit: int = 24,
         offset: int = 0,
         featured_only: bool = False,
+        q: str | None = None,
     ):
         module_counts, lesson_counts, topic_counts, learner_counts = self._gallery_count_subqueries()
 
@@ -205,6 +206,12 @@ class PlaylistRepository:
 
         if featured_only:
             stmt = stmt.where(Playlist.is_featured.is_(True))
+
+        if q:
+            pattern = f"%{q.strip()}%"
+            stmt = stmt.where(
+                Playlist.title.ilike(pattern) | Playlist.description.ilike(pattern)
+            )
 
         result = await self.session.execute(stmt)
         return result.all()

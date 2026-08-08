@@ -19,7 +19,7 @@ def create_generate_curriculum_chain():
 
     user_template = """### Role
     You are an expert Instructional Designer and Subject Matter Expert. Your task is to design a high-quality, structured learning roadmap for a learner who wants to learn the following:
-    - Topic: {topic}
+    - Topic: {topic}{customization}
 
     ### Audience Context
     Primerly's learners are primarily people building tech and digital skills - software development, data, design, cloud, cybersecurity, digital marketing. When the topic is technical, emphasize hands-on practice, tooling, and project-based progression. Still produce a high-quality roadmap for any topic you are given.
@@ -54,14 +54,31 @@ def create_generate_curriculum_chain():
     return chain
 
 
-async def generate_curriculum_response(topic: str):
+async def generate_curriculum_response(
+    topic: str,
+    duration_weeks: int | None = None,
+    level: str | None = None,
+):
     if USE_MOCK_DATA:
         return load_mock_curriculum()
+
+    customization_lines = []
+    if duration_weeks:
+        customization_lines.append(
+            f"- Target duration: about {duration_weeks} week{'s' if duration_weeks != 1 else ''}. "
+            "Scale the number of modules and lessons so the roadmap is realistically completable in that time."
+        )
+    if level:
+        customization_lines.append(
+            f"- Learner's starting level: {level}. Pitch the depth, prerequisites, and pacing accordingly."
+        )
+    customization = ("\n    " + "\n    ".join(customization_lines)) if customization_lines else ""
 
     chain = create_generate_curriculum_chain()
     try:
         result = await chain.ainvoke({
             "topic": topic,
+            "customization": customization,
         })
         return result
     except Exception as e:

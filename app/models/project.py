@@ -22,7 +22,7 @@ class Project(Base):
     """A buildable milestone attached to a course, or to one module of it.
 
     module_id is NULL for the course capstone and set for a module practice build.
-    The brief belongs to the course, not the learner — two people taking the same
+    The brief belongs to the course, not the learner , two people taking the same
     published course build the same thing, and their progress is tracked separately
     in UserProjectProgress.
     """

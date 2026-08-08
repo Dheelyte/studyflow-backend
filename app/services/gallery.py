@@ -29,7 +29,7 @@ class GalleryService:
 
     @staticmethod
     def _author_name(playlist) -> str | None:
-        """First name plus last initial — publishing a course shouldn't publish a full name."""
+        """First name plus last initial , publishing a course shouldn't publish a full name."""
         author = getattr(playlist, 'author', None)
         if not author:
             return None
@@ -66,9 +66,13 @@ class GalleryService:
         limit: int = 24,
         offset: int = 0,
         featured_only: bool = False,
+        q: str | None = None,
     ) -> list[GalleryCourseCard]:
+        # Sub-2-char queries are noise, not searches.
+        if q and len(q.strip()) < 2:
+            q = None
         rows = await self.playlist_repo.get_public_playlists(
-            limit=limit, offset=offset, featured_only=featured_only
+            limit=limit, offset=offset, featured_only=featured_only, q=q
         )
         return [self._to_card(row) for row in rows]
 
@@ -127,7 +131,7 @@ class GalleryService:
         )
 
     async def _capstone_summary(self, playlist_id: int) -> ProjectSummary | None:
-        """Only surfaces a capstone that already exists — never generates one for a
+        """Only surfaces a capstone that already exists , never generates one for a
         public request, which would put an LLM call behind an unauthenticated endpoint."""
         project = await ProjectRepository(self.playlist_repo.session).get_capstone(playlist_id)
         if not project:

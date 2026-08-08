@@ -20,6 +20,8 @@ class User(Base):
     longest_streak = mapped_column(Integer, default=0, nullable=False)
     last_active_date = mapped_column(DateTime(timezone=True), nullable=True)
     total_xp = mapped_column(Integer, default=0, nullable=False)
+    # free | pro | max , flipped only by billing webhooks / verify fallback
+    plan = mapped_column(String(20), server_default="free", default="free", nullable=False)
 
     
     posts = relationship("Post", back_populates="user")

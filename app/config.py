@@ -59,7 +59,30 @@ class Settings(BaseSettings):
     TEMPLATE_FOLDER: str = Field(default="app/templates")
 
     # --- Screen Tutor ---
+    # Deprecated: superseded by the plan-aware *_SCREEN_TUTOR_DAILY limits below.
     SCREEN_TUTOR_DAILY_LIMIT: int = Field(default=20, gt=0)
+
+    # --- Billing / Plans ---
+    BILLING_ENABLED: bool = Field(default=False)
+    PAYSTACK_SECRET_KEY: str = Field(default="")
+    PAYSTACK_PLAN_CODE_PRO_MONTHLY: str = Field(default="")
+    PAYSTACK_PLAN_CODE_PRO_ANNUAL: str = Field(default="")
+    PAYSTACK_PLAN_CODE_MAX_MONTHLY: str = Field(default="")
+    PAYSTACK_PLAN_CODE_MAX_ANNUAL: str = Field(default="")
+
+    # Tier limits (free / pro / max). Max's chat + screen tutor are displayed
+    # "Unlimited" , the caps exist only as abuse brakes no human use reaches.
+    FREE_COURSE_GENERATIONS_MONTHLY: int = Field(default=3, gt=0)
+    PRO_COURSE_GENERATIONS_MONTHLY: int = Field(default=15, gt=0)
+    MAX_COURSE_GENERATIONS_MONTHLY: int = Field(default=50, gt=0)
+
+    FREE_CHAT_MESSAGES_DAILY: int = Field(default=10, gt=0)
+    PRO_CHAT_MESSAGES_DAILY: int = Field(default=100, gt=0)
+    MAX_CHAT_MESSAGES_DAILY: int = Field(default=1000, gt=0)
+
+    FREE_SCREEN_TUTOR_DAILY: int = Field(default=10, gt=0)
+    PRO_SCREEN_TUTOR_DAILY: int = Field(default=30, gt=0)
+    MAX_SCREEN_TUTOR_DAILY: int = Field(default=500, gt=0)
 
     # --- LLM Settings (Required) ---
     GEMINI_MODEL: str = Field(default="")

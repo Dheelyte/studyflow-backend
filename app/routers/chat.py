@@ -12,6 +12,7 @@ from ..schema.chat import (
     SendMessageResponse,
 )
 from ..services.chat import ChatServiceDep
+from ..services.entitlements import METRIC_CHAT_MESSAGES, EntitlementsServiceDep
 
 
 router = APIRouter(tags=["Chat"], dependencies=[Depends(db_session)])
@@ -57,7 +58,9 @@ async def send_chat_message(
     body: SendMessageRequest,
     auth_user: AuthUserDep,
     chat_service: ChatServiceDep,
+    entitlements: EntitlementsServiceDep,
 ):
+    await entitlements.check_and_increment(auth_user, METRIC_CHAT_MESSAGES)
     return await chat_service.send_message(
         user_id=auth_user.id,
         topic_id=topic_id,
@@ -72,8 +75,11 @@ async def stream_chat_message(
     body: SendMessageRequest,
     auth_user: AuthUserDep,
     chat_service: ChatServiceDep,
+    entitlements: EntitlementsServiceDep,
 ):
     """Stream the assistant reply as newline-delimited JSON events."""
+    # Charge before the stream opens so the client gets a clean 402, not a broken stream.
+    await entitlements.check_and_increment(auth_user, METRIC_CHAT_MESSAGES)
 
     async def event_stream():
         async for event in chat_service.send_message_stream(

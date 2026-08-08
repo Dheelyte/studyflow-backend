@@ -123,7 +123,7 @@ class ProjectService:
         return self._to_read(project, progress)
 
     async def get_capstone_summary(self, playlist_id: int) -> ProjectSummary | None:
-        """Public teaser. Never generates — an anonymous visitor must not trigger an LLM call."""
+        """Public teaser. Never generates , an anonymous visitor must not trigger an LLM call."""
         project = await self.project_repo.get_capstone(playlist_id)
         if not project:
             return None

@@ -9,7 +9,7 @@ from .base import Base
 class ScreenTutorUsage(Base):
     """One row per user per day, for the screen tutor's daily question quota.
 
-    Only a count is kept — captured frames are never written anywhere.
+    Only a count is kept , captured frames are never written anywhere.
     """
 
     __tablename__ = 'screen_tutor_usage'

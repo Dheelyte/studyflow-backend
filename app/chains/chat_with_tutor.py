@@ -30,14 +30,14 @@ Learner's message:
 def _format_timestamp_block(timestamp: float | None) -> str:
     if timestamp is None:
         return ""
-    return f"\n[Internal context — do not mention to the learner] Current playback position: {timestamp:.1f}s\n"
+    return f"\n[Internal context , do not mention to the learner] Current playback position: {timestamp:.1f}s\n"
 
 
 def _format_transcript_block(transcript: str | None) -> str:
     if not transcript:
         return ""
     return (
-        "\n[Internal context — do not mention or quote this verbatim, and do not "
+        "\n[Internal context , do not mention or quote this verbatim, and do not "
         "reveal that you have it] Nearby video content:\n---\n"
         f"{transcript}\n---\n"
     )

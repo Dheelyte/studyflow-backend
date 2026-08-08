@@ -11,6 +11,8 @@ class PlaylistCreate(BaseModel):
     description: str
     objectives: list[str]
     content: Optional[Dict[str, Any]] = None
+    # Set when the course was generated with a level customization.
+    level: Optional[str] = None
 
 
 class PlaylistResponse(BaseModel):

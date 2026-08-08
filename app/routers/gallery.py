@@ -13,7 +13,7 @@ from ..schema.gallery import (
 from ..services.gallery import GalleryServiceDep
 
 
-# Public browsing — unauthenticated so gallery pages are server-renderable and indexable.
+# Public browsing , unauthenticated so gallery pages are server-renderable and indexable.
 public_router = APIRouter(tags=["Gallery"], dependencies=[Depends(db_session)])
 
 
@@ -23,9 +23,10 @@ async def list_public_courses(
     limit: int = Query(default=24, ge=1, le=60),
     offset: int = Query(default=0, ge=0),
     featured: bool = Query(default=False),
+    q: str | None = Query(default=None, max_length=200, description="Text search on title/description"),
 ):
     return await service.list_public_courses(
-        limit=limit, offset=offset, featured_only=featured
+        limit=limit, offset=offset, featured_only=featured, q=q
     )
 
 

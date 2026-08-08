@@ -1,15 +1,15 @@
 import logging
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..chains.screen_tutor import screen_tutor_stream
-from ..config import settings
 from ..db.session import get_session
 from ..exceptions.base import BadRequestError
+from ..models.user import User
 from ..repositories.screen_tutor import ScreenTutorRepository
+from ..services.entitlements import get_limits
 from ..schema.screen_tutor import (
     AnswerStyle,
     PinTarget,
@@ -29,17 +29,18 @@ class ScreenTutorService:
     def __init__(self, repo: ScreenTutorRepository):
         self.repo = repo
 
-    @property
-    def daily_limit(self) -> int:
-        return settings.SCREEN_TUTOR_DAILY_LIMIT
+    @staticmethod
+    def daily_limit_for(user: User) -> int:
+        return get_limits(user.plan).screen_tutor_daily
 
-    async def get_status(self, user_id: UUID) -> ScreenTutorStatus:
-        usage = await self.repo.get_usage(user_id)
+    async def get_status(self, user: User) -> ScreenTutorStatus:
+        usage = await self.repo.get_usage(user.id)
         used = usage.question_count if usage else 0
+        limit = self.daily_limit_for(user)
         return ScreenTutorStatus(
             used_today=used,
-            daily_limit=self.daily_limit,
-            remaining=max(0, self.daily_limit - used),
+            daily_limit=limit,
+            remaining=max(0, limit - used),
         )
 
     async def get_pin_targets(self, playlist_id: int) -> PinTargetList:
@@ -68,7 +69,7 @@ class ScreenTutorService:
             context.update(await self.repo.get_project_context(payload.project_id))
         return context
 
-    async def ask_stream(self, user_id: UUID, payload: ScreenAskRequest):
+    async def ask_stream(self, user: User, payload: ScreenAskRequest):
         """Yield NDJSON-friendly events. The frame is forwarded, never stored.
 
         Events: {"type": "status", ...} | {"type": "chunk", "text": ...}
@@ -96,7 +97,7 @@ class ScreenTutorService:
             }
             return
 
-        status = await self.get_status(user_id)
+        status = await self.get_status(user)
         if status.remaining <= 0:
             yield {
                 "type": "error",
@@ -109,9 +110,10 @@ class ScreenTutorService:
             return
 
         # Charge before generating so parallel requests can't slip past the cap.
-        usage = await self.repo.increment_usage(user_id)
-        remaining = max(0, self.daily_limit - usage.question_count)
-        yield {"type": "status", "remaining": remaining, "daily_limit": self.daily_limit}
+        daily_limit = self.daily_limit_for(user)
+        usage = await self.repo.increment_usage(user.id)
+        remaining = max(0, daily_limit - usage.question_count)
+        yield {"type": "status", "remaining": remaining, "daily_limit": daily_limit}
 
         context = await self._build_context(payload)
 

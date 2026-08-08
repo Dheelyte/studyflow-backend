@@ -8,6 +8,7 @@ from ..schema.progress import UserPlaylistResponse, UserTopicProgressResponse
 from ..db.session import db_session
 from ..schema.resource import Curriculum, CurriculumRequest
 from ..chains.generate_curriculum import generate_curriculum_response
+from ..services.entitlements import METRIC_COURSE_GENERATIONS, EntitlementsServiceDep
 from ..services.playlist import PlaylistServiceDep
 from ..schema.quiz import QuizSubmission, QuizSubmissionResponse, QuizBase, QuizRequest
 
@@ -17,9 +18,17 @@ router = APIRouter(
 )
 
 @router.get("/generate-curriculum", response_model=Curriculum)
-async def generate_curriculum(request: Annotated[CurriculumRequest, Query()]):
+async def generate_curriculum(
+    request: Annotated[CurriculumRequest, Query()],
+    auth_user: AuthUserDep,
+    entitlements: EntitlementsServiceDep,
+):
+    # Charge before generating so parallel requests can't slip past the cap.
+    await entitlements.check_and_increment(auth_user, METRIC_COURSE_GENERATIONS)
     curriculum = await generate_curriculum_response(
         topic=request.topic,
+        duration_weeks=request.duration_weeks,
+        level=request.level,
     )
     return curriculum
 

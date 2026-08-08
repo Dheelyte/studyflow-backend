@@ -1,6 +1,6 @@
 """backfill playlist slugs
 
-Course URLs are slug-based, so every playlist needs a slug — not just the
+Course URLs are slug-based, so every playlist needs a slug , not just the
 published ones that got a slug from the gallery publish flow.
 
 Revision ID: 9c5e7d3a1b26

@@ -28,5 +28,12 @@ dependencies = [
 [dependency-groups]
 dev = [
     "fastapi[standard]>=0.124.4",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
     "uvicorn>=0.38.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
