@@ -2,63 +2,8 @@ import pytest
 from sqlalchemy import select
 
 from app.models.billing import Subscription
-from app.services.paystack import PaystackClient, PaystackError
 
 
-@pytest.fixture
-def paystack_mock(monkeypatch):
-    """Record Paystack API calls instead of hitting the network."""
-    calls = {"initialize": [], "disable": [], "verify": [], "fetch_plan": []}
-
-    # Amounts as Paystack reports them: kobo, matching the configured plans.
-    PLAN_AMOUNTS = {
-        "PLN_pro_m": 450000,
-        "PLN_pro_y": 4500000,
-        "PLN_max_m": 1000000,
-        "PLN_max_y": 10000000,
-    }
-
-    async def fetch_plan(self, plan_code):
-        calls["fetch_plan"].append(plan_code)
-        if plan_code not in PLAN_AMOUNTS:
-            raise PaystackError("Plan not found")
-        return {"plan_code": plan_code, "amount": PLAN_AMOUNTS[plan_code], "currency": "NGN"}
-
-    async def initialize_transaction(
-        self, email, plan_code, amount_kobo, callback_url, metadata=None
-    ):
-        # Paystack rejects the call outright when amount is missing or zero.
-        if not amount_kobo:
-            raise PaystackError("Invalid Amount Sent")
-        calls["initialize"].append({
-            "email": email,
-            "plan_code": plan_code,
-            "amount_kobo": amount_kobo,
-            "metadata": metadata,
-        })
-        return {"authorization_url": "https://checkout.paystack.com/x", "reference": "ref_new"}
-
-    async def disable_subscription(self, subscription_code, email_token):
-        calls["disable"].append({"code": subscription_code, "token": email_token})
-        return {}
-
-    async def verify_transaction(self, reference):
-        calls["verify"].append(reference)
-        return {
-            "status": "success",
-            "reference": reference,
-            "amount": 450000,
-            "currency": "NGN",
-            "paid_at": "2026-08-01T10:00:00.000Z",
-            "customer": {"customer_code": "CUS_1"},
-            "plan": {"plan_code": "PLN_pro_m"},
-        }
-
-    monkeypatch.setattr(PaystackClient, "fetch_plan", fetch_plan)
-    monkeypatch.setattr(PaystackClient, "initialize_transaction", initialize_transaction)
-    monkeypatch.setattr(PaystackClient, "disable_subscription", disable_subscription)
-    monkeypatch.setattr(PaystackClient, "verify_transaction", verify_transaction)
-    return calls
 
 
 async def test_checkout_disabled_without_flag(client, test_user):

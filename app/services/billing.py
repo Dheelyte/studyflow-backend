@@ -30,6 +30,44 @@ PAID_TIERS = ("pro", "max")
 INTERVALS = ("monthly", "annual")
 
 
+def _extract_plan_code(data: dict) -> str:
+    """Pull the plan code out of a Paystack payload, whatever shape it arrived in.
+
+    Paystack is not consistent about this field: `transaction/verify` returns
+    `plan` as a bare plan-code string (or "" for a one-off charge), while the
+    `charge.success` and `subscription.create` webhooks nest it as an object
+    under `plan.plan_code`. Some payloads carry a top-level `plan_code` instead.
+    Assuming any single shape crashes on the others.
+    """
+    plan = data.get("plan")
+    code = ""
+    if isinstance(plan, str):
+        code = plan
+    elif isinstance(plan, dict):
+        code = plan.get("plan_code") or ""
+
+    if not code:
+        top_level = data.get("plan_code")
+        if isinstance(top_level, str):
+            code = top_level
+
+    return code.strip()
+
+
+def _nested(data: dict, key: str, field: str) -> str | None:
+    """Read data[key][field] without assuming data[key] is a dict.
+
+    Same defensive reason as _extract_plan_code: Paystack sometimes sends a
+    bare identifier string where a nested object is documented, and an
+    AttributeError inside a webhook 500s the endpoint, which Paystack retries
+    and can eventually disable.
+    """
+    value = data.get(key)
+    if isinstance(value, dict):
+        return value.get(field)
+    return None
+
+
 def _parse_paystack_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
@@ -139,7 +177,7 @@ class BillingService:
         if data.get("status") != "success":
             return VerifyResponse(status=data.get("status", "pending"), plan=user.plan)
 
-        plan_code = (data.get("plan") or {}).get("plan_code") or data.get("plan_code") or ""
+        plan_code = _extract_plan_code(data)
         resolved = self.tier_for_plan_code(plan_code)
         if not resolved:
             logger.warning("Verified transaction %s has unknown plan code %r", reference, plan_code)
@@ -179,13 +217,13 @@ class BillingService:
                 user = None
             if user:
                 return user
-        email = (data.get("customer") or {}).get("email")
+        email = _nested(data, "customer", "email")
         if email:
             return await self.user_repo.get_by_email(email)
         return None
 
     async def _on_charge_success(self, data: dict) -> None:
-        plan_code = (data.get("plan") or {}).get("plan_code") or data.get("plan_code") or ""
+        plan_code = _extract_plan_code(data)
         resolved = self.tier_for_plan_code(plan_code)
         if not resolved:
             # A charge unrelated to our subscription plans (or plan codes not configured).
@@ -209,7 +247,7 @@ class BillingService:
         if not user:
             logger.error("subscription.create: could not resolve user")
             return
-        plan_code = (data.get("plan") or {}).get("plan_code", "")
+        plan_code = _extract_plan_code(data)
         resolved = self.tier_for_plan_code(plan_code)
         if not resolved:
             return
@@ -221,7 +259,7 @@ class BillingService:
             subscription = await self._get_or_create_subscription(user, tier, interval, plan_code)
         subscription.paystack_subscription_code = code
         subscription.paystack_email_token = data.get("email_token")
-        subscription.paystack_customer_code = (data.get("customer") or {}).get("customer_code")
+        subscription.paystack_customer_code = _nested(data, "customer", "customer_code")
         subscription.status = "active"
         subscription.current_period_end = _parse_paystack_datetime(data.get("next_payment_date"))
         await self.subscription_repo.add(subscription)
@@ -240,7 +278,7 @@ class BillingService:
             await self.subscription_repo.add(subscription)
 
     async def _on_invoice_failed(self, data: dict) -> None:
-        code = (data.get("subscription") or {}).get("subscription_code")
+        code = _nested(data, "subscription", "subscription_code")
         if not code:
             return
         subscription = await self.subscription_repo.get_by_subscription_code(code)
@@ -356,7 +394,7 @@ class BillingService:
     ) -> None:
         subscription = await self._get_or_create_subscription(user, tier, interval, plan_code)
         subscription.status = "active"
-        customer_code = (data.get("customer") or {}).get("customer_code")
+        customer_code = _nested(data, "customer", "customer_code")
         if customer_code:
             subscription.paystack_customer_code = customer_code
         await self.subscription_repo.add(subscription)
