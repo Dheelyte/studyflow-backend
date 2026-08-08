@@ -2,16 +2,40 @@ import pytest
 from sqlalchemy import select
 
 from app.models.billing import Subscription
-from app.services.paystack import PaystackClient
+from app.services.paystack import PaystackClient, PaystackError
 
 
 @pytest.fixture
 def paystack_mock(monkeypatch):
     """Record Paystack API calls instead of hitting the network."""
-    calls = {"initialize": [], "disable": [], "verify": []}
+    calls = {"initialize": [], "disable": [], "verify": [], "fetch_plan": []}
 
-    async def initialize_transaction(self, email, plan_code, callback_url, metadata=None):
-        calls["initialize"].append({"email": email, "plan_code": plan_code, "metadata": metadata})
+    # Amounts as Paystack reports them: kobo, matching the configured plans.
+    PLAN_AMOUNTS = {
+        "PLN_pro_m": 450000,
+        "PLN_pro_y": 4500000,
+        "PLN_max_m": 1000000,
+        "PLN_max_y": 10000000,
+    }
+
+    async def fetch_plan(self, plan_code):
+        calls["fetch_plan"].append(plan_code)
+        if plan_code not in PLAN_AMOUNTS:
+            raise PaystackError("Plan not found")
+        return {"plan_code": plan_code, "amount": PLAN_AMOUNTS[plan_code], "currency": "NGN"}
+
+    async def initialize_transaction(
+        self, email, plan_code, amount_kobo, callback_url, metadata=None
+    ):
+        # Paystack rejects the call outright when amount is missing or zero.
+        if not amount_kobo:
+            raise PaystackError("Invalid Amount Sent")
+        calls["initialize"].append({
+            "email": email,
+            "plan_code": plan_code,
+            "amount_kobo": amount_kobo,
+            "metadata": metadata,
+        })
         return {"authorization_url": "https://checkout.paystack.com/x", "reference": "ref_new"}
 
     async def disable_subscription(self, subscription_code, email_token):
@@ -30,6 +54,7 @@ def paystack_mock(monkeypatch):
             "plan": {"plan_code": "PLN_pro_m"},
         }
 
+    monkeypatch.setattr(PaystackClient, "fetch_plan", fetch_plan)
     monkeypatch.setattr(PaystackClient, "initialize_transaction", initialize_transaction)
     monkeypatch.setattr(PaystackClient, "disable_subscription", disable_subscription)
     monkeypatch.setattr(PaystackClient, "verify_transaction", verify_transaction)
@@ -62,6 +87,39 @@ async def test_checkout_uses_right_plan_code(
     assert response.json()["authorization_url"].startswith("https://checkout.paystack.com")
     assert paystack_mock["initialize"][-1]["plan_code"] == expected_code
     assert paystack_mock["initialize"][-1]["metadata"] == {"user_id": str(test_user.id)}
+
+
+async def test_checkout_sends_the_plans_amount(
+    client, billing_settings, paystack_mock, test_user
+):
+    """Regression: Paystack rejects initialize with "Invalid Amount Sent" unless a
+    non-zero amount is supplied, even though the plan code overrides it."""
+    response = await client.post(
+        "/api/v1/billing/checkout", json={"tier": "pro", "interval": "monthly"}
+    )
+    assert response.status_code == 200
+
+    sent = paystack_mock["initialize"][-1]["amount_kobo"]
+    assert isinstance(sent, int) and sent > 0
+    # ₦4,500 == 450000 kobo, read from the plan rather than hardcoded here.
+    assert sent == 450000
+    assert paystack_mock["fetch_plan"] == ["PLN_pro_m"]
+
+
+async def test_checkout_fails_clearly_when_plan_code_is_wrong(
+    client, billing_settings, paystack_mock, test_user, monkeypatch
+):
+    """Guards the test-codes-in-live mistake: an unknown plan code must fail at
+    checkout, not after the customer has been charged."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "PAYSTACK_PLAN_CODE_PRO_MONTHLY", "PLN_from_test_mode")
+
+    response = await client.post(
+        "/api/v1/billing/checkout", json={"tier": "pro", "interval": "monthly"}
+    )
+    assert response.status_code == 400
+    assert paystack_mock["initialize"] == []  # never reached Paystack checkout
 
 
 async def test_checkout_rejects_unknown_tier(client, billing_settings, paystack_mock, test_user):

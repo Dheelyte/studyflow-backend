@@ -48,17 +48,31 @@ class PaystackClient:
             raise PaystackError(message)
         return body.get("data", {})
 
+    async def fetch_plan(self, plan_code: str) -> dict:
+        return await self._request("GET", f"/plan/{plan_code}")
+
     async def initialize_transaction(
-        self, email: str, plan_code: str, callback_url: str, metadata: dict | None = None
+        self,
+        email: str,
+        plan_code: str,
+        amount_kobo: int,
+        callback_url: str,
+        metadata: dict | None = None,
     ) -> dict:
         """Start a checkout for a subscription plan. Paystack creates the
-        subscription itself on the first successful charge."""
+        subscription itself on the first successful charge.
+
+        `amount` is required even though `plan` overrides it — omitting it (or
+        sending zero) is rejected with "Invalid Amount Sent". We pass the plan's
+        own amount so the value we send always agrees with what gets charged.
+        """
         return await self._request(
             "POST",
             "/transaction/initialize",
             json={
                 "email": email,
                 "plan": plan_code,
+                "amount": amount_kobo,
                 "callback_url": callback_url,
                 "metadata": metadata or {},
             },

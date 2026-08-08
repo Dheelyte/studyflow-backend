@@ -96,9 +96,31 @@ class BillingService:
                 await self._disable_subscription(sub)
 
         plan_code = self.plan_code_for(tier, interval)
+
+        # Look the plan up rather than hardcoding prices: Paystack requires an
+        # amount on initialize even though the plan overrides it, and this also
+        # catches a plan code that doesn't exist in the current mode — the
+        # classic "test plan codes still configured in live" mistake, which
+        # would otherwise only surface after a customer had been charged.
+        try:
+            plan = await self.paystack.fetch_plan(plan_code)
+        except PaystackError as e:
+            logger.error("Paystack plan %s could not be fetched: %s", plan_code, e)
+            raise BadRequestError(
+                "This plan isn't available right now. Please try again later."
+            )
+
+        amount_kobo = plan.get("amount") or 0
+        if not amount_kobo:
+            logger.error("Paystack plan %s returned no amount", plan_code)
+            raise BadRequestError(
+                "This plan isn't available right now. Please try again later."
+            )
+
         data = await self.paystack.initialize_transaction(
             email=user.email,
             plan_code=plan_code,
+            amount_kobo=amount_kobo,
             callback_url=f"{settings.FRONTEND_URL}/billing/callback",
             metadata={"user_id": str(user.id)},
         )
