@@ -70,6 +70,21 @@ class Settings(BaseSettings):
     PAYSTACK_PLAN_CODE_MAX_MONTHLY: str = Field(default="")
     PAYSTACK_PLAN_CODE_MAX_ANNUAL: str = Field(default="")
 
+    # How long past a subscription's period end a user keeps paid access before
+    # the lazy expiry check downgrades them. Covers Paystack's retry window for
+    # a failed renewal, so a card that bounces and then succeeds never
+    # interrupts access.
+    PLAN_EXPIRY_GRACE_DAYS: int = Field(default=3, ge=0)
+
+    # Shared secret for POST /billing/reconcile, the scheduled sweep that cleans
+    # up lapsed subscribers who never come back (the lazy check only catches
+    # users who return). Empty disables the endpoint entirely — it fails closed.
+    RECONCILE_SECRET: str = Field(default="")
+    # Bounds one sweep. Each expired user costs a sequential Paystack call, and
+    # API Gateway cuts the request off at 29s, so keep the batch well inside
+    # that (~50 x ~300ms). Leftovers roll into the next nightly run.
+    RECONCILE_BATCH_LIMIT: int = Field(default=50, gt=0)
+
     # Tier limits (free / pro / max). Max's chat + screen tutor are displayed
     # "Unlimited" , the caps exist only as abuse brakes no human use reaches.
     FREE_COURSE_GENERATIONS_MONTHLY: int = Field(default=3, gt=0)

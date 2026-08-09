@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -17,6 +17,7 @@ from ..schema.billing import (
     BillingStatus,
     CheckoutResponse,
     PlanLimitsRead,
+    ReconcileReport,
     SubscriptionRead,
     UsageRead,
     VerifyResponse,
@@ -66,6 +67,18 @@ def _nested(data: dict, key: str, field: str) -> str | None:
     if isinstance(value, dict):
         return value.get(field)
     return None
+
+
+def _as_utc(value: datetime | None) -> datetime | None:
+    """Treat a stored naive datetime as UTC.
+
+    Postgres timestamptz round-trips tz-aware, but SQLite (tests) and some
+    drivers hand back naive values, and comparing the two raises TypeError.
+    Everything we store here is UTC, so attaching it is safe.
+    """
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=timezone.utc)
 
 
 def _parse_paystack_datetime(value: str | None) -> datetime | None:
@@ -200,6 +213,11 @@ class BillingService:
             await self._on_subscription_create(data)
         elif event_type == "subscription.not_renew":
             await self._on_subscription_status(data, "non_renewing")
+        elif event_type in ("invoice.create", "invoice.update"):
+            # Renewal cycle. charge.success keeps the tier alive, but only these
+            # carry the *new* next_payment_date, so without them the stored
+            # renewal date freezes at whatever the first payment set.
+            await self._on_invoice(data)
         elif event_type == "invoice.payment_failed":
             await self._on_invoice_failed(data)
         elif event_type == "subscription.disable":
@@ -264,9 +282,9 @@ class BillingService:
         subscription.current_period_end = _parse_paystack_datetime(data.get("next_payment_date"))
         await self.subscription_repo.add(subscription)
 
-        if user.plan != tier:
-            user.plan = tier
-            await self.user_repo.add(user)
+        user.plan = tier
+        user.plan_expires_at = subscription.current_period_end
+        await self.user_repo.add(user)
 
     async def _on_subscription_status(self, data: dict, status: str) -> None:
         code = data.get("subscription_code")
@@ -276,6 +294,36 @@ class BillingService:
         if subscription:
             subscription.status = status
             await self.subscription_repo.add(subscription)
+
+    async def _on_invoice(self, data: dict) -> None:
+        """Roll the stored renewal date forward on each billing cycle."""
+        code = _nested(data, "subscription", "subscription_code")
+        if not code:
+            return
+        subscription = await self.subscription_repo.get_by_subscription_code(code)
+        if not subscription:
+            return
+
+        next_payment = _parse_paystack_datetime(
+            _nested(data, "subscription", "next_payment_date")
+        )
+        if next_payment:
+            subscription.current_period_end = next_payment
+            # Keep the denormalised copy on the user in step, or the lazy expiry
+            # check would still see the previous cycle's date.
+            user = await self.user_repo.get_by_id(subscription.user_id)
+            if user and user.plan != "free":
+                user.plan_expires_at = next_payment
+                await self.user_repo.add(user)
+
+        # A paid invoice clears a previous past_due state. Never resurrect a
+        # cancelled or non-renewing subscription — those are winding down on
+        # purpose and must still end at period close.
+        paid = data.get("status") == "success" or data.get("paid") is True
+        if paid and subscription.status == "past_due":
+            subscription.status = "active"
+
+        await self.subscription_repo.add(subscription)
 
     async def _on_invoice_failed(self, data: dict) -> None:
         code = _nested(data, "subscription", "subscription_code")
@@ -307,8 +355,10 @@ class BillingService:
         ]
         if remaining:
             user.plan = remaining[0].tier
+            user.plan_expires_at = remaining[0].current_period_end
         else:
             user.plan = "free"
+            user.plan_expires_at = None
         await self.user_repo.add(user)
 
     # --- Cancel / status ---------------------------------------------------
@@ -320,6 +370,110 @@ class BillingService:
         subscription = subs[0]
         await self._disable_subscription(subscription)
         return SubscriptionRead.model_validate(subscription)
+
+    async def reconcile_plan(self, user: User) -> None:
+        """Safety net for a missed `subscription.disable` webhook.
+
+        `user.plan` is the only gate on paid features, and that webhook is
+        normally the only thing that clears it — so if Paystack never delivers
+        it, the user keeps a paid tier forever. Called lazily when someone uses
+        a feature their subscription pays for.
+
+        Deliberately fails open: a Paystack outage must never revoke a paying
+        customer's access.
+        """
+        if user.plan == "free" or not user.plan_expires_at:
+            return
+
+        deadline = _as_utc(user.plan_expires_at) + timedelta(
+            days=settings.PLAN_EXPIRY_GRACE_DAYS
+        )
+        if datetime.now(timezone.utc) <= deadline:
+            return
+
+        subscriptions = await self.subscription_repo.get_active_for_user(user.id)
+        if not subscriptions:
+            # Paid tier with nothing backing it.
+            await self._downgrade(user, None)
+            return
+
+        subscription = subscriptions[0]
+        code = subscription.paystack_subscription_code
+        if not code:
+            await self._downgrade(user, subscription)
+            return
+
+        try:
+            remote = await self.paystack.fetch_subscription(code)
+        except PaystackError as e:
+            logger.error("Could not reconcile subscription %s: %s", code, e)
+            return  # fail open
+
+        next_payment = _parse_paystack_datetime(remote.get("next_payment_date"))
+        still_live = remote.get("status") in ("active", "attention")
+
+        if still_live and next_payment and next_payment > datetime.now(timezone.utc):
+            # The disable webhook was simply missed, or a renewal landed without
+            # us hearing about it. Heal the dates so this stops re-checking.
+            subscription.current_period_end = next_payment
+            subscription.status = "active"
+            await self.subscription_repo.add(subscription)
+            user.plan_expires_at = next_payment
+            await self.user_repo.add(user)
+            logger.info("Reconciled subscription %s: still active", code)
+            return
+
+        logger.info("Reconciled subscription %s: expired, downgrading", code)
+        await self._downgrade(user, subscription)
+
+    async def sweep_expired_plans(self, limit: int | None = None) -> ReconcileReport:
+        """Reconcile lapsed subscribers who never came back.
+
+        The lazy check only fires when someone uses a paid feature, so a user
+        who lapses and stops visiting keeps a paid tier in the database forever.
+        That costs nothing real but inflates subscriber counts, so a scheduled
+        sweep settles them.
+        """
+        limit = limit or settings.RECONCILE_BATCH_LIMIT
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            days=settings.PLAN_EXPIRY_GRACE_DAYS
+        )
+        users = await self.user_repo.get_expired_paid_users(cutoff, limit)
+
+        report = ReconcileReport(scanned=len(users))
+        for user in users:
+            before = user.plan
+            try:
+                await self.reconcile_plan(user)
+            except Exception:
+                # One unhealthy account must not abort the batch; the next run
+                # retries it. reconcile_plan already swallows PaystackError, so
+                # reaching here means something unexpected.
+                logger.exception("Sweep failed for user %s", user.id)
+                report.errors += 1
+                continue
+
+            if user.plan == "free" and before != "free":
+                report.downgraded += 1
+            elif user.plan_expires_at and _as_utc(user.plan_expires_at) > cutoff:
+                report.still_active += 1
+            else:
+                report.unchanged += 1
+
+        logger.info(
+            "Reconcile sweep: scanned=%d downgraded=%d still_active=%d unchanged=%d errors=%d",
+            report.scanned, report.downgraded, report.still_active,
+            report.unchanged, report.errors,
+        )
+        return report
+
+    async def _downgrade(self, user: User, subscription: Subscription | None) -> None:
+        if subscription is not None:
+            subscription.status = "cancelled"
+            await self.subscription_repo.add(subscription)
+        user.plan = "free"
+        user.plan_expires_at = None
+        await self.user_repo.add(user)
 
     async def status(self, user: User) -> BillingStatus:
         limits = get_limits(user.plan)

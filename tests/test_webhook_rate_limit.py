@@ -51,3 +51,21 @@ async def test_normal_routes_are_still_rate_limited(client, live_limiter):
     """Sanity check: the exemption is specific to the webhook, not global."""
     statuses = [(await client.get("/api/v1/billing/status")).status_code for _ in range(80)]
     assert 429 in statuses, "global rate limit is not active at all — exemption test is vacuous"
+
+
+async def test_reconcile_endpoint_is_also_exempt(client, live_limiter, monkeypatch):
+    """The sweep shares the webhook's router and the same API Gateway
+    rate-limit-key problem, so it must be exempt too."""
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "RECONCILE_SECRET", "sweep-token")
+
+    statuses = set()
+    for _ in range(80):
+        response = await client.post(
+            "/api/v1/billing/reconcile",
+            headers={"x-reconcile-secret": "sweep-token"},
+        )
+        statuses.add(response.status_code)
+
+    assert 429 not in statuses, f"reconcile was rate limited; saw {sorted(statuses)}"

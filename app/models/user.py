@@ -22,6 +22,10 @@ class User(Base):
     total_xp = mapped_column(Integer, default=0, nullable=False)
     # free | pro | max , flipped only by billing webhooks / verify fallback
     plan = mapped_column(String(20), server_default="free", default="free", nullable=False)
+    # Denormalised from subscriptions.current_period_end so the expiry check on
+    # every AI request is an in-memory comparison rather than an extra query.
+    # NULL means "no known expiry" and is never treated as expired.
+    plan_expires_at = mapped_column(DateTime(timezone=True), nullable=True)
 
     
     posts = relationship("Post", back_populates="user")

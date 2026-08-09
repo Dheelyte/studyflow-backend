@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from ..dependencies.auth import AuthUserDep
+from ..dependencies.billing import PlanCurrentUserDep
 from ..db.session import db_session
 from ..schema.chat import (
     ChatMessagesPage,
@@ -56,7 +57,7 @@ async def clear_chat_session(
 async def send_chat_message(
     topic_id: int,
     body: SendMessageRequest,
-    auth_user: AuthUserDep,
+    auth_user: PlanCurrentUserDep,
     chat_service: ChatServiceDep,
     entitlements: EntitlementsServiceDep,
 ):
@@ -73,7 +74,7 @@ async def send_chat_message(
 async def stream_chat_message(
     topic_id: int,
     body: SendMessageRequest,
-    auth_user: AuthUserDep,
+    auth_user: PlanCurrentUserDep,
     chat_service: ChatServiceDep,
     entitlements: EntitlementsServiceDep,
 ):

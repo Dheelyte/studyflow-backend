@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 
 from ..db.session import db_session
 from ..dependencies.auth import AuthUserDep
+from ..dependencies.billing import PlanCurrentUserDep
 from ..dependencies.playlist import PlaylistIdDep
 from ..schema.screen_tutor import PinTargetList, ScreenAskRequest, ScreenTutorStatus
 from ..services.screen_tutor import ScreenTutorServiceDep
@@ -25,7 +26,7 @@ async def get_tutor_pin_targets(
 
 @router.get("/screen-tutor/status", response_model=ScreenTutorStatus)
 async def get_screen_tutor_status(
-    auth_user: AuthUserDep,
+    auth_user: PlanCurrentUserDep,
     service: ScreenTutorServiceDep,
 ):
     """Remaining screen questions for today."""
@@ -35,7 +36,7 @@ async def get_screen_tutor_status(
 @router.post("/screen-tutor/ask")
 async def ask_about_screen(
     body: ScreenAskRequest,
-    auth_user: AuthUserDep,
+    auth_user: PlanCurrentUserDep,
     service: ScreenTutorServiceDep,
 ):
     """Answer a question about the learner's screen, streamed as newline-delimited JSON.

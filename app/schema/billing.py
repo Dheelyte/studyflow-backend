@@ -47,6 +47,16 @@ class CheckoutResponse(BaseModel):
     reference: str
 
 
+class ReconcileReport(BaseModel):
+    """Outcome of one scheduled sweep, returned so the cron run is auditable."""
+
+    scanned: int = 0
+    downgraded: int = 0
+    still_active: int = 0  # webhook was missed; subscription healed instead
+    unchanged: int = 0
+    errors: int = 0
+
+
 class VerifyResponse(BaseModel):
     status: str  # "success" | "pending" | "failed"
     plan: str

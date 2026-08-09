@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.config import settings
 from app.models.billing import UsageCounter
+from app.models.user import User
 from app.repositories.billing import month_start_utc, today_utc
 
 GENERATE_PATH = "/api/v1/generate-curriculum?topic=React"
@@ -66,7 +67,13 @@ async def test_pro_user_passes_free_limit(client, auth, test_user, session_facto
     await seed_counter(
         session_factory, test_user, "course_generations", month_start_utc(), 1
     )
-    auth.user.plan = "pro"
+    # Persist it: auth reloads the user per request, like the real dependency.
+    async with session_factory() as session:
+        user = (
+            await session.execute(select(User).where(User.id == test_user.id))
+        ).scalar_one()
+        user.plan = "pro"
+        await session.commit()
 
     response = await client.get(GENERATE_PATH)
     assert response.status_code == 200

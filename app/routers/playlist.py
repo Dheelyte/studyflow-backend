@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Annotated
 
 from ..dependencies.auth import AuthUserDep
+from ..dependencies.billing import PlanCurrentUserDep
 from ..dependencies.playlist import PlaylistIdDep
 from ..schema.playlist import PlaylistCreate, PlaylistResponse, PlaylistDetailSchema
 from ..schema.progress import UserPlaylistResponse, UserTopicProgressResponse
@@ -20,7 +21,7 @@ router = APIRouter(
 @router.get("/generate-curriculum", response_model=Curriculum)
 async def generate_curriculum(
     request: Annotated[CurriculumRequest, Query()],
-    auth_user: AuthUserDep,
+    auth_user: PlanCurrentUserDep,
     entitlements: EntitlementsServiceDep,
 ):
     # Charge before generating so parallel requests can't slip past the cap.

@@ -17,6 +17,25 @@ class UserRepository:
     async def get_by_id(self, user_id: UUID) -> User | None:
         return await self.session.get(User, user_id)
 
+    async def get_expired_paid_users(self, cutoff, limit: int) -> list[User]:
+        """Paid users whose period ended before `cutoff` (period end + grace).
+
+        Feeds the scheduled sweep. Oldest first so a backlog drains in order
+        rather than the same rows being retried every run.
+        """
+        stmt = (
+            select(User)
+            .where(
+                User.plan != "free",
+                User.plan_expires_at.isnot(None),
+                User.plan_expires_at < cutoff,
+            )
+            .order_by(User.plan_expires_at)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
     
     async def add(self, user: User):
         self.session.add(user)

@@ -1,0 +1,61 @@
+name: Reconcile subscriptions
+
+# Settles subscribers whose Paystack subscription ended but who never came back
+# to the app — the in-app lazy check only fires when a user returns, so without
+# this they'd keep a paid tier in the database indefinitely.
+on:
+  schedule:
+    # 03:17 UTC daily. Off-peak, and deliberately not on the hour: GitHub's
+    # scheduler is heavily oversubscribed at :00 and delays runs.
+    - cron: '17 3 * * *'
+  workflow_dispatch: # so you can trigger a sweep by hand from the Actions tab
+
+# Overlapping sweeps would double-process the same rows.
+concurrency:
+  group: reconcile-subscriptions
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep expired subscriptions
+        env:
+          API_URL: ${{ secrets.API_BASE_URL }}
+          SECRET: ${{ secrets.RECONCILE_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${API_URL:-}" ] || [ -z "${SECRET:-}" ]; then
+            echo "::error::API_BASE_URL and RECONCILE_SECRET repository secrets must be set"
+            exit 1
+          fi
+
+          # -sS keeps it quiet but still prints errors; the secret goes in a
+          # header so it never lands in a URL or the run log.
+          http_status=$(curl -sS -o response.json -w '%{http_code}' \
+            -X POST "${API_URL%/}/billing/reconcile" \
+            -H "X-Reconcile-Secret: ${SECRET}" \
+            --max-time 120)
+
+          echo "HTTP $http_status"
+          cat response.json
+
+          if [ "$http_status" != "200" ]; then
+            echo "::error::Reconcile failed with HTTP $http_status"
+            exit 1
+          fi
+
+          # Surface the run in the Actions summary so a drift in downgrades is
+          # visible without digging through logs.
+          {
+            echo "### Subscription reconcile"
+            echo '```json'
+            cat response.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          errors=$(python3 -c "import json;print(json.load(open('response.json')).get('errors',0))")
+          if [ "$errors" != "0" ]; then
+            echo "::warning::Sweep reported $errors errored account(s); check backend logs"
+          fi

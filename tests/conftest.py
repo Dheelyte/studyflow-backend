@@ -24,7 +24,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.config import settings
-from app.db.session import db_session, session_context
+from sqlalchemy import select
+
+from app.db.session import db_session, get_session, session_context
 from app.dependencies.auth import get_auth_user
 from app.exceptions.base import UnauthorizedError
 from app.main import app
@@ -76,10 +78,16 @@ class AuthOverride:
     def __init__(self, user=None):
         self.user = user
 
-    def __call__(self):
+    async def __call__(self):
         if self.user is None:
             raise UnauthorizedError("Not authenticated")
-        return self.user
+        # Reload from the request's session, because real auth queries the user
+        # on every request. Returning the fixture's detached instance would hand
+        # services a stale row that ignores anything committed since, and any
+        # writes they make would never reach the database.
+        session = get_session()
+        result = await session.execute(select(User).where(User.id == self.user.id))
+        return result.scalar_one()
 
 
 @pytest.fixture
@@ -126,7 +134,16 @@ def billing_settings(monkeypatch):
 @pytest.fixture
 def paystack_mock(monkeypatch):
     """Record Paystack API calls instead of hitting the network."""
-    calls = {"initialize": [], "disable": [], "verify": [], "fetch_plan": []}
+    calls = {
+        "initialize": [],
+        "disable": [],
+        "verify": [],
+        "fetch_plan": [],
+        "fetch_subscription": [],
+    }
+    # Tests override this to say what Paystack currently reports for a
+    # subscription: a dict to return, or a PaystackError instance to raise.
+    subscription_state = {}
 
     # Amounts as Paystack reports them: kobo, matching the configured plans.
     PLAN_AMOUNTS = {
@@ -160,6 +177,13 @@ def paystack_mock(monkeypatch):
         calls["disable"].append({"code": subscription_code, "token": email_token})
         return {}
 
+    async def fetch_subscription(self, subscription_code):
+        calls["fetch_subscription"].append(subscription_code)
+        state = subscription_state.get(subscription_code, {"status": "complete"})
+        if isinstance(state, PaystackError):
+            raise state
+        return state
+
     async def verify_transaction(self, reference):
         calls["verify"].append(reference)
         return {
@@ -179,4 +203,6 @@ def paystack_mock(monkeypatch):
     monkeypatch.setattr(PaystackClient, "initialize_transaction", initialize_transaction)
     monkeypatch.setattr(PaystackClient, "disable_subscription", disable_subscription)
     monkeypatch.setattr(PaystackClient, "verify_transaction", verify_transaction)
+    monkeypatch.setattr(PaystackClient, "fetch_subscription", fetch_subscription)
+    calls["subscription_state"] = subscription_state
     return calls
