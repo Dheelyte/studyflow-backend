@@ -1,7 +1,8 @@
 from datetime import date, datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.billing import PaymentTransaction, Subscription, UsageCounter
@@ -28,17 +29,62 @@ class UsageCounterRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def increment(self, user_id: UUID, metric: str, period_start: date) -> UsageCounter:
-        counter = await self.get(user_id, metric, period_start)
-        if counter:
-            counter.count += 1
-        else:
-            counter = UsageCounter(
-                user_id=user_id, metric=metric, period_start=period_start, count=1
+    async def _conditional_increment(
+        self, user_id: UUID, metric: str, period_start: date, limit: int
+    ) -> bool:
+        """Atomic `count += 1 WHERE count < limit`. True iff a unit was taken.
+
+        The predicate lives in the UPDATE so the database re-checks it while
+        holding the row lock — correct under READ COMMITTED without an explicit
+        SELECT FOR UPDATE. RETURNING tells us whether the row matched.
+        """
+        stmt = (
+            update(UsageCounter)
+            .where(
+                UsageCounter.user_id == user_id,
+                UsageCounter.metric == metric,
+                UsageCounter.period_start == period_start,
+                UsageCounter.count < limit,
             )
-            self.session.add(counter)
-        await self.session.flush()
-        return counter
+            .values(count=UsageCounter.count + 1)
+            .returning(UsageCounter.count)
+        )
+        result = await self.session.execute(stmt)
+        return result.first() is not None
+
+    async def try_consume(
+        self, user_id: UUID, metric: str, period_start: date, limit: int
+    ) -> bool:
+        """Consume one unit if under `limit`. Returns False when at the cap.
+
+        Replaces the old read-modify-write increment, which let N concurrent
+        requests at the cap all pass.
+        """
+        if limit <= 0:
+            return False
+
+        if await self._conditional_increment(user_id, metric, period_start, limit):
+            return True
+
+        # No row updated: the counter is either at the cap or doesn't exist yet.
+        existing = await self.get(user_id, metric, period_start)
+        if existing is not None:
+            return False  # at the cap
+
+        # First use this period. Insert in a savepoint so a concurrent insert
+        # (unique on user+metric+period) rolls back just this attempt, then
+        # retry the atomic update once against the row the other request made.
+        try:
+            async with self.session.begin_nested():
+                self.session.add(
+                    UsageCounter(
+                        user_id=user_id, metric=metric, period_start=period_start, count=1
+                    )
+                )
+                await self.session.flush()
+            return True
+        except IntegrityError:
+            return await self._conditional_increment(user_id, metric, period_start, limit)
 
 
 class SubscriptionRepository:

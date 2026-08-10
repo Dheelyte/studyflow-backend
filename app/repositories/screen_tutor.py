@@ -1,7 +1,8 @@
 from datetime import date, timezone, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.lesson import Lesson
@@ -28,17 +29,45 @@ class ScreenTutorRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def increment_usage(self, user_id: UUID) -> ScreenTutorUsage:
-        usage = await self.get_usage(user_id)
-        if usage:
-            usage.question_count += 1
-        else:
-            usage = ScreenTutorUsage(
-                user_id=user_id, usage_date=today_utc(), question_count=1
+    async def _conditional_increment(self, user_id: UUID, day: date, limit: int) -> bool:
+        stmt = (
+            update(ScreenTutorUsage)
+            .where(
+                ScreenTutorUsage.user_id == user_id,
+                ScreenTutorUsage.usage_date == day,
+                ScreenTutorUsage.question_count < limit,
             )
-            self.session.add(usage)
-        await self.session.flush()
-        return usage
+            .values(question_count=ScreenTutorUsage.question_count + 1)
+            .returning(ScreenTutorUsage.question_count)
+        )
+        result = await self.session.execute(stmt)
+        return result.first() is not None
+
+    async def try_consume(self, user_id: UUID, limit: int) -> bool:
+        """Consume one screen-tutor question if under `limit` for today.
+
+        Atomic, same shape as UsageCounterRepository.try_consume — see there for
+        the reasoning on the conditional UPDATE and the insert-race fallback.
+        """
+        if limit <= 0:
+            return False
+        day = today_utc()
+
+        if await self._conditional_increment(user_id, day, limit):
+            return True
+
+        if await self.get_usage(user_id, day) is not None:
+            return False  # at the cap
+
+        try:
+            async with self.session.begin_nested():
+                self.session.add(
+                    ScreenTutorUsage(user_id=user_id, usage_date=day, question_count=1)
+                )
+                await self.session.flush()
+            return True
+        except IntegrityError:
+            return await self._conditional_increment(user_id, day, limit)
 
     async def get_topic_context(self, topic_id: int) -> dict:
         """Topic -> lesson -> module -> course, in one hop, for prompt context."""

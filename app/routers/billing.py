@@ -43,7 +43,9 @@ async def start_checkout(
 async def verify_checkout(
     auth_user: AuthUserDep,
     service: BillingServiceDep,
-    reference: str = Query(min_length=1),
+    # Paystack references are alphanumeric with a few separators. The pattern
+    # rejects path-traversal / injection attempts before they reach the client.
+    reference: str = Query(min_length=1, max_length=100, pattern=r"^[\w.=-]+$"),
 ):
     """Callback-page fallback in case the webhook hasn't landed yet."""
     return await service.verify(auth_user, reference)

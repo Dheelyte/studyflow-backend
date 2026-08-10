@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models.billing import Subscription
+from app.models.user import User
 
 
 
@@ -88,13 +89,11 @@ async def test_verify_activates_tier(client, billing_settings, paystack_mock, te
         assert user.plan == "pro"
 
 
-async def test_upgrade_disables_old_subscription_first(
-    client, billing_settings, paystack_mock, test_user, session_factory
-):
+async def _add_pro_sub(session_factory, user_id):
     async with session_factory() as session:
         session.add(
             Subscription(
-                user_id=test_user.id,
+                user_id=user_id,
                 tier="pro",
                 status="active",
                 interval="monthly",
@@ -105,11 +104,19 @@ async def test_upgrade_disables_old_subscription_first(
         )
         await session.commit()
 
+
+async def test_checkout_does_not_touch_current_subscription(
+    client, billing_settings, paystack_mock, test_user, session_factory
+):
+    """C2: winding down before payment let an abandoned checkout kill a paying
+    customer. Checkout must leave the existing subscription alone."""
+    await _add_pro_sub(session_factory, test_user.id)
+
     response = await client.post(
         "/api/v1/billing/checkout", json={"tier": "max", "interval": "monthly"}
     )
     assert response.status_code == 200
-    assert paystack_mock["disable"] == [{"code": "SUB_pro", "token": "tok_pro"}]
+    assert paystack_mock["disable"] == [], "checkout must not disable anything"
 
     async with session_factory() as session:
         sub = (
@@ -117,7 +124,52 @@ async def test_upgrade_disables_old_subscription_first(
                 select(Subscription).where(Subscription.paystack_subscription_code == "SUB_pro")
             )
         ).scalar_one()
-        assert sub.status == "non_renewing"
+        assert sub.status == "active", "old plan stays live until the new one is paid"
+
+
+async def test_old_subscription_disabled_once_new_tier_is_paid(
+    client, billing_settings, paystack_mock, test_user, session_factory
+):
+    """The tier switch completes on confirmed payment (charge.success), not at
+    checkout."""
+    await _add_pro_sub(session_factory, test_user.id)
+    paystack_mock["subscription_state"]  # ensure fixture active
+
+    event = {
+        "event": "charge.success",
+        "data": {
+            "reference": "ref_upgrade",
+            "amount": 1000000,
+            "currency": "NGN",
+            "status": "success",
+            "metadata": {"user_id": str(test_user.id)},
+            "customer": {"email": test_user.email, "customer_code": "CUS_1"},
+            "plan": {"plan_code": "PLN_max_m"},
+        },
+    }
+    import hashlib
+    import hmac
+    import json
+
+    body = json.dumps(event).encode()
+    sig = hmac.new(b"sk_test_secret", body, hashlib.sha512).hexdigest()
+    response = await client.post(
+        "/api/v1/billing/webhook/paystack",
+        content=body,
+        headers={"content-type": "application/json", "x-paystack-signature": sig},
+    )
+    assert response.status_code == 200
+    assert paystack_mock["disable"] == [{"code": "SUB_pro", "token": "tok_pro"}]
+
+    async with session_factory() as session:
+        old = (
+            await session.execute(
+                select(Subscription).where(Subscription.paystack_subscription_code == "SUB_pro")
+            )
+        ).scalar_one()
+        assert old.status == "non_renewing"
+        user = (await session.execute(select(User).where(User.id == test_user.id))).scalar_one()
+        assert user.plan == "max"
 
 
 async def test_cancel_uses_stored_token(client, billing_settings, paystack_mock, test_user, session_factory):

@@ -39,7 +39,7 @@ class PostRepository:
         
         stmt = (
             select(Post, comments_count_sub.label("comments_count"))
-            .options(joinedload(Post.user))
+            .options(joinedload(Post.user), joinedload(Post.community))
             .join(community_members, Post.community_id == community_members.c.community_id)
             .where(community_members.c.user_id == user_id)
             .order_by(Post.created_at.desc())
@@ -47,13 +47,15 @@ class PostRepository:
             .limit(limit)
         )
         result = await self.session.execute(stmt)
-        
+
         posts = []
         for row in result:
             post = row[0]
             setattr(post, "comments_count", row[1] or 0)
             if post.user:
                 setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
+            if post.community:
+                setattr(post, "community_name", post.community.name)
             posts.append(post)
         return posts
     
@@ -67,21 +69,23 @@ class PostRepository:
         
         result = await self.session.execute(
             select(Post, comments_count_sub.label("comments_count"))
-            .options(joinedload(Post.user))
+            .options(joinedload(Post.user), joinedload(Post.community))
             .order_by(Post.created_at.desc())
             .offset(skip)
             .limit(limit)
         )
-        
+
         posts = []
         for row in result:
             post = row[0]
             setattr(post, "comments_count", row[1] or 0)
             if post.user:
                 setattr(post, "user_name", f"{post.user.first_name} {post.user.last_name}")
+            if post.community:
+                setattr(post, "community_name", post.community.name)
             posts.append(post)
         return posts
-    
+
     async def get_by_community(self, community_id: int, skip: int, limit: int) -> list[Post]:
         comments_count_sub = (
             select(func.count(Comment.id))

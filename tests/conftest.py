@@ -38,6 +38,22 @@ from app.services.paystack import PaystackClient, PaystackError
 limiter.enabled = False
 
 
+@pytest.fixture(autouse=True)
+def _no_real_paystack(monkeypatch):
+    """Hard stop against any test making a live Paystack HTTP call.
+
+    Every Paystack method funnels through `_request`; stubbing it means an
+    unmocked call raises instead of hitting the network. `paystack_mock` still
+    overrides the higher-level methods, which no longer touch `_request`, so
+    the two don't collide. Fail-open paths (e.g. the M1 price check) see this as
+    a normal outage and behave exactly as they would in production.
+    """
+    async def _blocked(self, *args, **kwargs):
+        raise PaystackError("Paystack network call not mocked in this test")
+
+    monkeypatch.setattr(PaystackClient, "_request", _blocked)
+
+
 @pytest_asyncio.fixture
 async def db_engine():
     # StaticPool: every session shares the single in-memory database.
@@ -192,7 +208,9 @@ def paystack_mock(monkeypatch):
             "amount": 450000,
             "currency": "NGN",
             "paid_at": "2026-08-01T10:00:00.000Z",
-            "customer": {"customer_code": "CUS_1"},
+            # Email matches the default test_user so the verify ownership check
+            # passes; tests for the *mismatch* case use a different caller.
+            "customer": {"customer_code": "CUS_1", "email": "learner@example.com"},
             # transaction/verify returns `plan` as a bare plan-code STRING, not
             # an object like the webhooks do. Mocking the object shape here is
             # exactly what let an AttributeError reach production.

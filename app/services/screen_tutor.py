@@ -97,23 +97,22 @@ class ScreenTutorService:
             }
             return
 
-        status = await self.get_status(user)
-        if status.remaining <= 0:
+        # Check and charge in one atomic step, so parallel requests at the cap
+        # can't all slip through the old check-then-increment gap.
+        daily_limit = self.daily_limit_for(user)
+        if not await self.repo.try_consume(user.id, daily_limit):
             yield {
                 "type": "error",
                 "error": (
-                    f"You've used all {status.daily_limit} screen questions for today. "
+                    f"You've used all {daily_limit} screen questions for today. "
                     "Your quota resets at midnight UTC."
                 ),
                 "quota_exhausted": True,
             }
             return
 
-        # Charge before generating so parallel requests can't slip past the cap.
-        daily_limit = self.daily_limit_for(user)
-        usage = await self.repo.increment_usage(user.id)
-        remaining = max(0, daily_limit - usage.question_count)
-        yield {"type": "status", "remaining": remaining, "daily_limit": daily_limit}
+        status = await self.get_status(user)
+        yield {"type": "status", "remaining": status.remaining, "daily_limit": daily_limit}
 
         context = await self._build_context(payload)
 

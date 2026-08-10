@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
@@ -140,12 +141,9 @@ class BillingService:
         if tier not in PAID_TIERS or interval not in INTERVALS:
             raise BadRequestError("Unknown plan")
 
-        # Tier switch: Paystack can't swap a subscription's plan in place, so
-        # wind down the old subscription and start a new checkout.
-        for sub in await self.subscription_repo.get_active_for_user(user.id):
-            if sub.tier != tier or sub.interval != interval:
-                await self._disable_subscription(sub)
-
+        # Note: we do NOT touch the user's current subscription here. Winding it
+        # down before payment would let an abandoned checkout cancel a paying
+        # customer. The switch happens in _activate, only once payment confirms.
         plan_code = self.plan_code_for(tier, interval)
 
         # Look the plan up rather than hardcoding prices: Paystack requires an
@@ -190,6 +188,17 @@ class BillingService:
         if data.get("status") != "success":
             return VerifyResponse(status=data.get("status", "pending"), plan=user.plan)
 
+        # Ownership: this endpoint activates the *caller*, so the transaction
+        # must belong to them. A reference leaks via the Paystack redirect URL
+        # (history, logs, screenshots), so without this any authenticated user
+        # could redeem another user's payment onto their own account. 404 (not
+        # 403) so we don't confirm the reference exists to a probing caller.
+        if not self._transaction_belongs_to(data, user):
+            logger.warning(
+                "Verify ownership mismatch: user %s tried reference %s", user.id, reference
+            )
+            raise NotFoundError("Transaction not found")
+
         plan_code = _extract_plan_code(data)
         resolved = self.tier_for_plan_code(plan_code)
         if not resolved:
@@ -198,6 +207,8 @@ class BillingService:
         tier, interval = resolved
 
         await self._record_transaction(user, reference, data)
+        if not await self._amount_is_sufficient(plan_code, data):
+            return VerifyResponse(status="pending", plan=user.plan)
         await self._activate(user, tier, interval, plan_code, data)
         return VerifyResponse(status="success", plan=user.plan)
 
@@ -225,6 +236,21 @@ class BillingService:
         else:
             logger.info("Ignoring Paystack event %s", event_type)
 
+    @staticmethod
+    def _transaction_belongs_to(data: dict, user: User) -> bool:
+        """Whether a verified transaction was paid by this user.
+
+        We stamp metadata.user_id at checkout; the customer email is the
+        fallback for a transaction that somehow lacks it.
+        """
+        metadata = data.get("metadata") or {}
+        if metadata.get("user_id") == str(user.id):
+            return True
+        email = _nested(data, "customer", "email")
+        if email and user.email and email.strip().lower() == user.email.strip().lower():
+            return True
+        return False
+
     async def _resolve_user(self, data: dict) -> User | None:
         metadata = data.get("metadata") or {}
         user_id = metadata.get("user_id")
@@ -239,6 +265,32 @@ class BillingService:
         if email:
             return await self.user_repo.get_by_email(email)
         return None
+
+    async def _amount_is_sufficient(self, plan_code: str, data: dict) -> bool:
+        """Defense in depth: a charge must actually cover the plan it claims.
+
+        Granting a tier off the plan code alone trusts the payload's amount
+        implicitly. Cross-check against the plan's real price and currency.
+        Fails *open* on a Paystack outage — availability over strictness — since
+        the plan code was still signed by the webhook / verified by Paystack.
+        """
+        currency = (data.get("currency") or "").upper()
+        if currency and currency != "NGN":
+            logger.error("Payment in unexpected currency %s for plan %s", currency, plan_code)
+            return False
+        try:
+            plan = await self.paystack.fetch_plan(plan_code)
+        except PaystackError as e:
+            logger.warning("Could not price-check plan %s, allowing: %s", plan_code, e)
+            return True
+        expected = plan.get("amount") or 0
+        paid = data.get("amount") or 0
+        if expected and paid < expected:
+            logger.error(
+                "Underpayment for plan %s: paid %s < expected %s", plan_code, paid, expected
+            )
+            return False
+        return True
 
     async def _on_charge_success(self, data: dict) -> None:
         plan_code = _extract_plan_code(data)
@@ -255,7 +307,12 @@ class BillingService:
         reference = data.get("reference", "")
         if reference and await self.payment_repo.get_by_reference(reference):
             return  # replayed webhook
+        # Record before validating so an underpaid/mismatched charge is still
+        # auditable — we just don't grant the tier for it.
         await self._record_transaction(user, reference, data)
+
+        if not await self._amount_is_sufficient(plan_code, data):
+            return
 
         tier, interval = resolved
         await self._activate(user, tier, interval, plan_code, data)
@@ -271,6 +328,9 @@ class BillingService:
             return
         tier, interval = resolved
 
+        # Same per-user serialization as _activate: charge.success and
+        # subscription.create arrive near-simultaneously for a new subscription.
+        await self.user_repo.lock(user.id)
         code = data.get("subscription_code")
         subscription = await self.subscription_repo.get_by_subscription_code(code) if code else None
         if not subscription:
@@ -304,10 +364,13 @@ class BillingService:
         if not subscription:
             return
 
+        # Only extend the period for a subscription that is actually renewing.
+        # A cancelled / non-renewing one is winding down on purpose; pushing its
+        # date out would keep the user paid past the end they were promised.
         next_payment = _parse_paystack_datetime(
             _nested(data, "subscription", "next_payment_date")
         )
-        if next_payment:
+        if next_payment and subscription.status not in ("non_renewing", "cancelled"):
             subscription.current_period_end = next_payment
             # Keep the denormalised copy on the user in step, or the lazy expiry
             # check would still see the previous cycle's date.
@@ -531,31 +594,70 @@ class BillingService:
     async def _record_transaction(self, user: User, reference: str, data: dict) -> None:
         if not reference or await self.payment_repo.get_by_reference(reference):
             return
-        await self.payment_repo.add(
-            PaymentTransaction(
-                user_id=user.id,
-                reference=reference,
-                amount_kobo=data.get("amount") or 0,
-                currency=data.get("currency") or "NGN",
-                status=data.get("status", "success"),
-                paid_at=_parse_paystack_datetime(data.get("paid_at") or data.get("paidAt")),
-                raw_event={"channel": data.get("channel"), "plan": data.get("plan")},
-            )
+        txn = PaymentTransaction(
+            user_id=user.id,
+            reference=reference,
+            amount_kobo=data.get("amount") or 0,
+            currency=data.get("currency") or "NGN",
+            status=data.get("status", "success"),
+            paid_at=_parse_paystack_datetime(data.get("paid_at") or data.get("paidAt")),
+            raw_event={"channel": data.get("channel"), "plan": data.get("plan")},
         )
+        try:
+            # Savepoint: if the webhook and verify paths race to insert the same
+            # reference, the loser hits the unique constraint and we treat it as
+            # a replay instead of 500ing the whole request.
+            session = self.payment_repo.session
+            async with session.begin_nested():
+                session.add(txn)
+                await session.flush()
+        except IntegrityError:
+            logger.info("Transaction %s already recorded (concurrent path)", reference)
+
+    @staticmethod
+    def _provisional_period_end(interval: str, data: dict) -> datetime:
+        """A conservative period end when we don't yet have Paystack's exact one.
+
+        _activate can run purely from the verify fallback, before any
+        subscription.create/invoice event carries next_payment_date. Without a
+        period end, both expiry safety nets skip the user entirely (reconcile
+        needs it non-NULL, the sweep query filters on it), so a paying user
+        could never be downgraded. Seed a generous value; later events overwrite
+        it with the real date.
+        """
+        base = _parse_paystack_datetime(data.get("paid_at") or data.get("paidAt"))
+        base = _as_utc(base) or datetime.now(timezone.utc)
+        return base + timedelta(days=366 if interval == "annual" else 32)
 
     async def _activate(
         self, user: User, tier: str, interval: str, plan_code: str, data: dict
     ) -> None:
+        # Serialize with the other activation path for this user so webhook and
+        # verify can't interleave into duplicate subscriptions.
+        await self.user_repo.lock(user.id)
         subscription = await self._get_or_create_subscription(user, tier, interval, plan_code)
         subscription.status = "active"
         customer_code = _nested(data, "customer", "customer_code")
         if customer_code:
             subscription.paystack_customer_code = customer_code
+        if subscription.current_period_end is None:
+            subscription.current_period_end = self._provisional_period_end(interval, data)
         await self.subscription_repo.add(subscription)
 
-        if user.plan != tier:
-            user.plan = tier
-            await self.user_repo.add(user)
+        user.plan = tier
+        # Only ever push the expiry outward here: a real date from a later event
+        # is authoritative and must not be clobbered by a provisional one.
+        provisional = _as_utc(subscription.current_period_end)
+        if user.plan_expires_at is None or _as_utc(user.plan_expires_at) < provisional:
+            user.plan_expires_at = subscription.current_period_end
+        await self.user_repo.add(user)
+
+        # Tier switch completes here, after payment: wind down any other paid
+        # subscription now that the new one is live. The (tier, interval) guard
+        # makes this a no-op on a plain renewal or a replayed webhook.
+        for other in await self.subscription_repo.get_active_for_user(user.id):
+            if other.id != subscription.id and other.status == "active":
+                await self._disable_subscription(other)
 
 
 def get_billing_service(

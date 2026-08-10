@@ -22,6 +22,9 @@ class PostResponse(PostBase):
     user_id: UUID
     user_name: str | None = None
     community_id: int
+    # Only populated for the general feed (feed/explore), where a post's
+    # community isn't otherwise obvious. Null inside a single community's page.
+    community_name: str | None = None
     comments_count: int
     likes_count: int = 0
     liked_by_user: bool = False

@@ -87,14 +87,20 @@ class EntitlementsService:
     async def check_and_increment(self, user: User, metric: str) -> int:
         """Charge-before-generate: raise 402 at the cap, else consume one unit.
 
-        Returns the units remaining after this consumption.
+        The check and the consume are a single atomic step, so N concurrent
+        requests at the cap can't all slip through. Returns units remaining.
         """
         limit = _limit_for(user.plan, metric)
-        used = await self.get_used(user, metric)
-        if used >= limit:
+        if metric == METRIC_SCREEN_TUTOR:
+            consumed = await self.screen_tutor_repo.try_consume(user.id, limit)
+        else:
+            consumed = await self.usage_repo.try_consume(
+                user.id, metric, _period_start(metric), limit
+            )
+        if not consumed:
+            used = await self.get_used(user, metric)
             raise QuotaExceededError(metric=metric, limit=limit, used=used, plan=user.plan)
-        counter = await self.usage_repo.increment(user.id, metric, _period_start(metric))
-        return max(0, limit - counter.count)
+        return max(0, limit - await self.get_used(user, metric))
 
     async def get_usage_summary(self, user: User) -> dict:
         limits = get_limits(user.plan)

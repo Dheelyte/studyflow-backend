@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import logging
+from urllib.parse import quote
 
 import httpx
 
@@ -49,7 +50,10 @@ class PaystackClient:
         return body.get("data", {})
 
     async def fetch_plan(self, plan_code: str) -> dict:
-        return await self._request("GET", f"/plan/{plan_code}")
+        # quote() every value interpolated into a path: these come from user
+        # input / external payloads, and a value like "../subscription" would
+        # otherwise steer our key-bearing client to a different endpoint.
+        return await self._request("GET", f"/plan/{quote(plan_code, safe='')}")
 
     async def initialize_transaction(
         self,
@@ -79,7 +83,9 @@ class PaystackClient:
         )
 
     async def verify_transaction(self, reference: str) -> dict:
-        return await self._request("GET", f"/transaction/verify/{reference}")
+        return await self._request(
+            "GET", f"/transaction/verify/{quote(reference, safe='')}"
+        )
 
     async def disable_subscription(self, subscription_code: str, email_token: str) -> dict:
         return await self._request(
@@ -89,7 +95,9 @@ class PaystackClient:
         )
 
     async def fetch_subscription(self, subscription_code: str) -> dict:
-        return await self._request("GET", f"/subscription/{subscription_code}")
+        return await self._request(
+            "GET", f"/subscription/{quote(subscription_code, safe='')}"
+        )
 
     async def list_subscriptions_for_customer(self, customer_id: int | str) -> list[dict]:
         data = await self._request("GET", "/subscription", params={"customer": customer_id})
