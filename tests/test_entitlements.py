@@ -21,10 +21,15 @@ async def seed_counter(session_factory, user, metric, period_start, count):
         await session.commit()
 
 
-async def test_generation_needs_auth(client, auth):
+async def test_generation_open_to_anonymous(client, auth, session_factory):
+    """Logged-out visitors can generate a curriculum, and aren't metered."""
     auth.user = None
     response = await client.get(GENERATE_PATH)
-    assert response.status_code == 401
+    assert response.status_code == 200
+
+    async with session_factory() as session:
+        counters = (await session.execute(select(UsageCounter))).scalars().all()
+        assert counters == []
 
 
 async def test_generation_quota_402_shape(client, test_user, session_factory, monkeypatch):

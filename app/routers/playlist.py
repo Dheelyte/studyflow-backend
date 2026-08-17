@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Annotated
 
 from ..dependencies.auth import AuthUserDep
-from ..dependencies.billing import PlanCurrentUserDep
+from ..dependencies.billing import OptionalPlanCurrentUserDep
 from ..dependencies.playlist import PlaylistIdDep
 from ..schema.playlist import PlaylistCreate, PlaylistResponse, PlaylistDetailSchema
 from ..schema.progress import UserPlaylistResponse, UserTopicProgressResponse
@@ -21,11 +21,14 @@ router = APIRouter(
 @router.get("/generate-curriculum", response_model=Curriculum)
 async def generate_curriculum(
     request: Annotated[CurriculumRequest, Query()],
-    auth_user: PlanCurrentUserDep,
+    auth_user: OptionalPlanCurrentUserDep,
     entitlements: EntitlementsServiceDep,
 ):
-    # Charge before generating so parallel requests can't slip past the cap.
-    await entitlements.check_and_increment(auth_user, METRIC_COURSE_GENERATIONS)
+    # Open to logged-out visitors: they can preview a curriculum, and only hit
+    # an account when they save it as a course. Signed-in users are metered.
+    if auth_user is not None:
+        # Charge before generating so parallel requests can't slip past the cap.
+        await entitlements.check_and_increment(auth_user, METRIC_COURSE_GENERATIONS)
     curriculum = await generate_curriculum_response(
         topic=request.topic,
         duration_weeks=request.duration_weeks,

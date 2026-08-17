@@ -3,20 +3,27 @@ import json
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
+from ..chains.transcribe import transcribe_audio
 from ..dependencies.auth import AuthUserDep
 from ..dependencies.billing import PlanCurrentUserDep
 from ..db.session import db_session
+from ..exceptions.base import BadRequestError
 from ..schema.chat import (
     ChatMessagesPage,
     ChatSessionResponse,
     SendMessageRequest,
     SendMessageResponse,
+    TranscribeRequest,
+    TranscribeResponse,
 )
 from ..services.chat import ChatServiceDep
 from ..services.entitlements import METRIC_CHAT_MESSAGES, EntitlementsServiceDep
 
 
 router = APIRouter(tags=["Chat"], dependencies=[Depends(db_session)])
+
+# ~60s of 16 kHz mono WAV, base64'd , the cap the recorder itself stops at.
+MAX_AUDIO_CHARS = 4_000_000
 
 
 @router.get("/topics/{topic_id}/chat", response_model=ChatSessionResponse)
@@ -68,6 +75,24 @@ async def send_chat_message(
         content=body.content,
         video_timestamp=body.video_timestamp,
     )
+
+
+@router.post("/chat/transcribe", response_model=TranscribeResponse)
+async def transcribe_question(
+    body: TranscribeRequest,
+    auth_user: AuthUserDep,
+):
+    """Spoken question -> text for the composer.
+
+    Not metered: the message it produces is charged when the learner sends it,
+    and nothing here is persisted.
+    """
+    if not body.audio.startswith("data:audio/"):
+        raise BadRequestError("Expected an audio data URL.")
+    if len(body.audio) > MAX_AUDIO_CHARS:
+        raise BadRequestError("That recording is too long. Keep it under a minute.")
+
+    return TranscribeResponse(text=await transcribe_audio(body.audio))
 
 
 @router.post("/topics/{topic_id}/chat/messages/stream")

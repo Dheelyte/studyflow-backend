@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from ..models.user import User
 from ..services.billing import BillingService, get_billing_service
-from .auth import AuthUserDep
+from .auth import AuthUserDep, OptionalAuthUserDep
 
 
 async def get_plan_current_user(
@@ -27,3 +27,22 @@ async def get_plan_current_user(
 
 
 PlanCurrentUserDep = Annotated[User, Depends(get_plan_current_user)]
+
+
+async def get_optional_plan_current_user(
+    auth_user: OptionalAuthUserDep,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> User | None:
+    """Same as `get_plan_current_user`, but anonymous visitors are allowed through.
+
+    Use on routes open to logged-out visitors that still have to respect a
+    signed-in user's plan (curriculum generation). The route decides what a
+    `None` user gets.
+    """
+    if auth_user is None:
+        return None
+    await billing_service.reconcile_plan(auth_user)
+    return auth_user
+
+
+OptionalPlanCurrentUserDep = Annotated[User | None, Depends(get_optional_plan_current_user)]

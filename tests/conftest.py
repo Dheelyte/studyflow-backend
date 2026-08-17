@@ -27,7 +27,7 @@ from app.config import settings
 from sqlalchemy import select
 
 from app.db.session import db_session, get_session, session_context
-from app.dependencies.auth import get_auth_user
+from app.dependencies.auth import get_auth_user, optional_get_auth_user
 from app.exceptions.base import UnauthorizedError
 from app.main import app
 from app.models.base import Base
@@ -105,6 +105,12 @@ class AuthOverride:
         result = await session.execute(select(User).where(User.id == self.user.id))
         return result.scalar_one()
 
+    async def optional(self):
+        """Stands in for `optional_get_auth_user`: None instead of a 401."""
+        if self.user is None:
+            return None
+        return await self()
+
 
 @pytest.fixture
 def auth(test_user):
@@ -127,6 +133,7 @@ async def client(session_factory, auth):
 
     app.dependency_overrides[db_session] = test_db_session
     app.dependency_overrides[get_auth_user] = auth
+    app.dependency_overrides[optional_get_auth_user] = auth.optional
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:

@@ -95,7 +95,7 @@ class Settings(BaseSettings):
     PRO_CHAT_MESSAGES_DAILY: int = Field(default=100, gt=0)
     MAX_CHAT_MESSAGES_DAILY: int = Field(default=1000, gt=0)
 
-    FREE_SCREEN_TUTOR_DAILY: int = Field(default=10, gt=0)
+    FREE_SCREEN_TUTOR_DAILY: int = Field(default=5, gt=0)
     PRO_SCREEN_TUTOR_DAILY: int = Field(default=30, gt=0)
     MAX_SCREEN_TUTOR_DAILY: int = Field(default=500, gt=0)
 

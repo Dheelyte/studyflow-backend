@@ -20,6 +20,8 @@ class PlaylistResponse(BaseModel):
     title: str
     description: str | None
     objectives: list[str] | None
+    # Enum on the model; the str value ("Beginner") is what clients render.
+    level: str | None = None
     user_id: UUID
     created_at: datetime
     is_public: bool = False

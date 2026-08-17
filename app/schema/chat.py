@@ -35,3 +35,13 @@ class SendMessageRequest(BaseModel):
 class SendMessageResponse(BaseModel):
     user_message: ChatMessageRead
     assistant_message: ChatMessageRead
+
+
+class TranscribeRequest(BaseModel):
+    # Spoken question as a data URL (data:audio/wav;base64,...). Forwarded to the
+    # model and dropped , the recording is never persisted.
+    audio: str = Field(min_length=32)
+
+
+class TranscribeResponse(BaseModel):
+    text: str
